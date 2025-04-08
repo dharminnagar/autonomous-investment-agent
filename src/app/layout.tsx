@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { ArweaveWalletKit } from "arweave-wallet-kit";
+import { Header } from "@/components/Header";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -24,11 +26,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+        >
+          <ArweaveWalletKit
+          config={{
+            permissions: [
+              "ACCESS_ADDRESS",
+              "ACCESS_PUBLIC_KEY",
+              "SIGN_TRANSACTION",
+              "DISPATCH",
+            ],
+            ensurePermissions: true,
+          }}
+          theme={{
+            displayTheme: "light",
+          }}
+          >
+            <Header />
         {children}
+        </ArweaveWalletKit>
       </body>
     </html>
   );

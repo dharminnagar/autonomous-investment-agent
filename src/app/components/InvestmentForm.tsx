@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useWallet } from '../lib/hooks/useWallet';
-import { useInvestmentPlans } from '../hooks/useInvestmentPlans';
+import { useWallet } from '@/app/lib/hooks/useWallet';
+import { useInvestmentPlans } from '@/app/hooks/useInvestmentPlans';
 
 export default function InvestmentForm() {
   const { address, balance } = useWallet();

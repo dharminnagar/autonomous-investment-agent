@@ -14,6 +14,8 @@ import {
   Legend,
   ChartData,
 } from 'chart.js';
+import { useWallet } from '@/app/lib/hooks/useWallet';
+import { AOService, PortfolioData } from '@/app/lib/services/aoService';
 
 // Register ChartJS components
 ChartJS.register(
@@ -27,15 +29,15 @@ ChartJS.register(
 );
 
 // Mock data for demonstration
-const mockPortfolioData = {
+const mockPortfolioData: PortfolioData = {
   totalValue: 1250.75,
   totalInvested: 1000.00,
   profitLoss: 250.75,
   profitLossPercentage: 25.08,
   investments: [
-    { id: '1', token: 'AR', amount: 500, value: 625.38, purchaseDate: '2023-01-15' },
-    { id: '2', token: 'AR', amount: 300, value: 375.23, purchaseDate: '2023-02-20' },
-    { id: '3', token: 'AR', amount: 200, value: 250.14, purchaseDate: '2023-03-10' },
+    { token: 'AR', amount: 500, timestamp: Date.now() - 30 * 24 * 60 * 60 * 1000 },
+    { token: 'AR', amount: 300, timestamp: Date.now() - 20 * 24 * 60 * 60 * 1000 },
+    { token: 'AR', amount: 200, timestamp: Date.now() - 10 * 24 * 60 * 60 * 1000 },
   ],
 };
 
@@ -67,23 +69,61 @@ const generateChartData = (): ChartData<'line'> => {
 };
 
 export default function Portfolio() {
-  const [portfolioData] = useState(mockPortfolioData);
-  const [chartData] = useState<ChartData<'line'>>(generateChartData());
+  const { address } = useWallet();
+  const [portfolioData, setPortfolioData] = useState<PortfolioData>(mockPortfolioData);
+  const [chartData, setChartData] = useState<ChartData<'line'>>(generateChartData());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const aoService = AOService.getInstance();
 
   useEffect(() => {
-    // Simulate loading data
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    if (address) {
+      try {
+        // Initialize AO connection
+        aoService.initializeAO();
+        fetchPortfolioData();
+      } catch (err) {
+        console.error('Error initializing AO:', err);
+        setError('Failed to initialize AO connection');
+        setLoading(false);
+      }
+    }
+  }, [address]);
 
-    return () => clearTimeout(timer);
-  }, []);
+  const fetchPortfolioData = async () => {
+    if (!address) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const data = await aoService.getPortfolioValue(address);
+      setPortfolioData(data);
+      
+      // Generate chart data based on the portfolio data
+      // This is a simplified version - in a real app, you'd use actual historical data
+      setChartData(generateChartData());
+    } catch (err) {
+      console.error('Error fetching portfolio data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch portfolio data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 text-red-700 rounded-lg">
+        {error}
       </div>
     );
   }
@@ -107,7 +147,7 @@ export default function Portfolio() {
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Return</h3>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Profit/Loss %</h3>
           <p className={`text-2xl font-bold ${portfolioData.profitLossPercentage >= 0 ? 'text-green-500' : 'text-red-500'}`}>
             {portfolioData.profitLossPercentage >= 0 ? '+' : ''}{portfolioData.profitLossPercentage.toFixed(2)}%
           </p>
@@ -138,7 +178,7 @@ export default function Portfolio() {
         </div>
       </div>
 
-      {/* Investment List */}
+      {/* Investments List */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
         <h3 className="text-lg font-medium mb-4">Your Investments</h3>
         <div className="overflow-x-auto">
@@ -152,27 +192,21 @@ export default function Portfolio() {
                   Amount
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Current Value
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Purchase Date
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {portfolioData.investments.map((investment) => (
-                <tr key={investment.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              {portfolioData.investments.map((investment, index) => (
+                <tr key={index}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     {investment.token}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {investment.amount.toFixed(2)}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {investment.amount.toFixed(2)} AR
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {investment.value.toFixed(2)} AR
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {format(new Date(investment.purchaseDate), 'MMM d, yyyy')}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {format(new Date(investment.timestamp), 'MMM d, yyyy')}
                   </td>
                 </tr>
               ))}

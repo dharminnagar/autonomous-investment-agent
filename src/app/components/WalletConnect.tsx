@@ -1,5 +1,5 @@
 "use client"
-import { useWallet } from '../lib/hooks/useWallet';
+import { useWallet } from '@/app/lib/hooks/useWallet';
 import { useState } from 'react';
 
 export default function WalletConnect() {

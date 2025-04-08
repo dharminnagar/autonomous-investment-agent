@@ -1,13 +1,41 @@
+'use client';
+
 import { connect } from '@permaweb/aoconnect';
+import { createDataItemSigner } from '@permaweb/aoconnect';
+import Arweave from 'arweave';
+
+// Initialize Arweave with browser-safe configuration
+const arweave = typeof window !== 'undefined' 
+  ? new Arweave({
+      host: 'arweave.net',
+      port: 443,
+      protocol: 'https',
+    })
+  : null;
+
+// Create a function to get the signer based on the connected wallet
+export const getSigner = async (address: string) => {
+  if (!address) {
+    throw new Error('Wallet address is required for signing');
+  }
+  
+  if (!arweave) {
+    throw new Error('Arweave is not initialized');
+  }
+  
+  // Create a data item signer using the connected wallet
+  return createDataItemSigner(arweave);
+};
 
 // Initialize AO connection
-const ao = connect({
-  MODE: 'mainnet',
-  GATEWAY_URL: 'https://arweave.net',
-  GRAPHQL_URL: 'https://arweave.net/graphql',
-  GRAPHQL_MAX_RETRIES: 3,
-  GRAPHQL_RETRY_BACKOFF: 1000,
-});
+export const createAOConnection = () => {
+  return connect({
+    MODE: "mainnet",
+    MU_URL: "https://mu.ao-testnet.xyz",
+    CU_URL: "https://cu.ao-testnet.xyz",
+    GATEWAY_URL: "https://arweave.net",
+  });
+};
 
 export type InvestmentPlan = {
   id: string;
@@ -46,10 +74,12 @@ export type PortfolioData = {
 export class AOService {
   private static instance: AOService;
   private readonly processId: string;
+  private ao: ReturnType<typeof connect> | null = null;
 
   private constructor() {
     // This is where we'll store our AO process ID
     this.processId = process.env.NEXT_PUBLIC_AO_PROCESS_ID || '';
+    console.log("Process ID: ", this.processId);
   }
 
   public static getInstance(): AOService {
@@ -59,7 +89,16 @@ export class AOService {
     return AOService.instance;
   }
 
+  // Initialize AO connection
+  public initializeAO() {
+    this.ao = createAOConnection();
+  }
+
   async createInvestmentPlan(plan: InvestmentPlan): Promise<string> {
+    if (!this.ao) {
+      throw new Error('AO connection not initialized. Call initializeAO first.');
+    }
+
     try {
       // Create a message to schedule the investment
       const messageData = {
@@ -69,7 +108,7 @@ export class AOService {
       };
 
       // Send the message to AO
-      const result = await ao.message({
+      const result = await this.ao.message({
         process: this.processId,
         data: JSON.stringify(messageData),
       });
@@ -82,6 +121,10 @@ export class AOService {
   }
 
   async getInvestmentPlans(walletAddress: string): Promise<InvestmentPlan[]> {
+    if (!this.ao) {
+      throw new Error('AO connection not initialized. Call initializeAO first.');
+    }
+
     try {
       // Query AO for investment plans associated with the wallet address
       const messageData = {
@@ -89,28 +132,33 @@ export class AOService {
         walletAddress,
       };
 
-      const result = await ao.message({
+      const result = await this.ao.message({
         process: this.processId,
         data: JSON.stringify(messageData),
       });
       
       return JSON.parse(result) as InvestmentPlan[];
     } catch (error) {
-      console.error('Error fetching investment plans:', error);
+      console.error('Error getting investment plans:', error);
       throw error;
     }
   }
 
   async executeInvestment(planId: string): Promise<string> {
+    if (!this.ao) {
+      throw new Error('AO connection not initialized. Call initializeAO first.');
+    }
+
     try {
-      // Execute a scheduled investment
+      // Create a message to execute the investment
       const messageData = {
         action: 'executeInvestment',
         planId,
-        executedAt: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       };
 
-      const result = await ao.message({
+      // Send the message to AO
+      const result = await this.ao.message({
         process: this.processId,
         data: JSON.stringify(messageData),
       });
@@ -123,41 +171,49 @@ export class AOService {
   }
 
   async getTransactionHistory(walletAddress: string): Promise<Transaction[]> {
+    if (!this.ao) {
+      throw new Error('AO connection not initialized. Call initializeAO first.');
+    }
+
     try {
-      // Query AO for transaction history
+      // Query AO for transaction history associated with the wallet address
       const messageData = {
         action: 'getTransactionHistory',
         walletAddress,
       };
 
-      const result = await ao.message({
+      const result = await this.ao.message({
         process: this.processId,
         data: JSON.stringify(messageData),
       });
       
       return JSON.parse(result) as Transaction[];
     } catch (error) {
-      console.error('Error fetching transaction history:', error);
+      console.error('Error getting transaction history:', error);
       throw error;
     }
   }
 
   async getPortfolioValue(walletAddress: string): Promise<PortfolioData> {
+    if (!this.ao) {
+      throw new Error('AO connection not initialized. Call initializeAO first.');
+    }
+
     try {
-      // Query AO for portfolio value
+      // Query AO for portfolio value associated with the wallet address
       const messageData = {
         action: 'getPortfolioValue',
         walletAddress,
       };
 
-      const result = await ao.message({
+      const result = await this.ao.message({
         process: this.processId,
         data: JSON.stringify(messageData),
       });
       
       return JSON.parse(result) as PortfolioData;
     } catch (error) {
-      console.error('Error fetching portfolio value:', error);
+      console.error('Error getting portfolio value:', error);
       throw error;
     }
   }

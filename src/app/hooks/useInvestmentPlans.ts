@@ -1,5 +1,7 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { AOService, InvestmentPlan } from '../lib/services/aoService';
+import { AOService, InvestmentPlan } from '@/app/lib/services/aoService';
 import { useWallet } from '@/app/lib/hooks/useWallet';
 
 export function useInvestmentPlans() {
@@ -12,7 +14,14 @@ export function useInvestmentPlans() {
 
   useEffect(() => {
     if (address) {
-      fetchPlans();
+      try {
+        // Initialize AO connection
+        aoService.initializeAO();
+        fetchPlans();
+      } catch (err) {
+        console.error('Error initializing AO:', err);
+        setError('Failed to initialize AO connection');
+      }
     }
   }, [address]);
 

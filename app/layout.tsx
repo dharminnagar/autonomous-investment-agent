@@ -3,7 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ArweaveWalletKit } from "arweave-wallet-kit";
 import { Header } from "@/components/Header";
-
+import { WarpBackground } from "@/components/magicui/warp-background";
+import { Toaster } from "@/components/ui/sonner";
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -46,7 +47,12 @@ export default function RootLayout({
           }}
           >
             <Header />
-        {children}
+            <div className="flex flex-col items-center justify-center h-[90vh]">
+              <WarpBackground gridColor="black" className="w-full h-full">
+                {children}
+                <Toaster />
+              </WarpBackground>
+            </div>
         </ArweaveWalletKit>
       </body>
     </html>

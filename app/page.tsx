@@ -1,18 +1,27 @@
 "use client"
-import { LandingPage } from "@/components/LandingPage";
 import { useConnection } from "arweave-wallet-kit";
-
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { LandingPage } from "@/components/pages/LandingPage";
+import { toast } from "sonner";
 export default function Home() {
   const { connected } = useConnection();
+  const router = useRouter();
 
-  if(!connected) {
-    return (<LandingPage />);
-  }
+  useEffect(() => {
+    if (connected) {
+      toast("dum dum says your wallet is connected!", {
+        action: {
+          label: "Go to Portfolio",
+          onClick: () => router.push("/portfolio"),
+        },
+      });
+    }
+  }, [connected, router]);  
 
   return (
     <div>
-      Connected
-
+      <LandingPage />
     </div>
-  );
+  )
 }

@@ -14,23 +14,55 @@ import {
 import { useEffect, useState } from "react";
 import { useConnection } from "arweave-wallet-kit";
 import { toast } from "sonner";
+import { mainProcessId } from "@/lib/config";
+import { messageResult } from "@/lib/aoService";
+import { Loader2 } from "lucide-react";
 
 export const InvestmentPage = () => {
     const { connected } = useConnection();
     const [amount, setAmount] = useState(0);
     const [token, setToken] = useState("AR");
     const [cronDate, setCronDate] = useState(1);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        const fetchData = async () => {
-            if (!connected) {
-                toast("dum dum requires your wallet to continue");
-            } else {
-                toast("dum dum says your wallet is connected!");
-            }
+        if (!connected) {
+            toast("dum dum requires your wallet to continue");
+        } else {
+            toast("dum dum says your wallet is connected!");
         }
-        fetchData();
     }, [connected]);
+
+    async function storeInvestment() {
+        try {
+            setIsLoading(true);
+            const res = await messageResult(mainProcessId, [
+                { name: "Action", value: "storeInvestment" },
+                { name: "amount", value: amount.toString() },
+                { name: "token", value: token },
+                { name: "cronDate", value: cronDate.toString() },
+            ]);
+
+            console.log(res);
+            toast("Investment processed successfully");
+            return;
+
+            if (res.Output === "Transaction has been added.") {
+                toast("Investment added.");
+            } else {
+                toast.error("Investment Failed.");
+            }
+        } catch (error) {
+            toast.error("An error occurred while processing your investment.");
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    function handleConfirm() {
+        storeInvestment();
+    }
 
     return (
         <div className="flex flex-col items-center justify-center w-full h-[70vh]">
@@ -42,6 +74,8 @@ export const InvestmentPage = () => {
                             {amount} {token}
                         </CardDescription>
                     </div>
+
+                    <Separator />
 
                     <div className="space-y-4">
                         <div className="flex justify-between items-center gap-4">
@@ -161,8 +195,20 @@ export const InvestmentPage = () => {
 
                         <Separator />
 
-                        <Button className="w-full h-12 text-lg" size="lg">
-                            Confirm
+                        <Button 
+                            className="w-full h-12 text-lg" 
+                            size="lg" 
+                            onClick={handleConfirm}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    Processing...
+                                </div>
+                            ) : (
+                                "Confirm"
+                            )}
                         </Button>
                     </div>
                 </CardContent>

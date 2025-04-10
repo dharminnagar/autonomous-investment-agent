@@ -38,8 +38,8 @@ Admin:exec([[
     Wallet_Address TEXT REFERENCES Users(Wallet_Address),
     iToken_Address TEXT REFERENCES Tokens(Address),
     oToken_Address TEXT REFERENCES Tokens(Address),
-    numberOfTokens INTEGER,
-    DayOfInvestment TEXT
+    numberOfTokens FLOAT(10, 2),
+    DayOfInvestment INTEGER
   );
 ]])
 
@@ -112,6 +112,19 @@ Handlers.add("saveTransaction", "saveTransaction", function(msg)
 end
 )
 
+-- Handler to store a new investment
+Handlers.add("storeInvestment", "storeInvestment", function(msg)
+  Admin:apply("INSERT INTO Investments (Wallet_Address, iToken_Address, oToken_Address, numberOfTokens, DayOfInvestment) VALUES (?, ?, ?, ?, ?)", {
+    msg.Tags.Wallet_Address,
+    msg.Tags.iToken_Address,
+    msg.Tags.oToken_Address,
+    msg.Tags.numberOfTokens,
+    msg.Tags.DayOfInvestment
+  })
+  msg.reply({ Data = "Investment has been added." })
+end
+)
+
 -- Example usage
 Admin:apply("INSERT INTO Users (Wallet_Address, Process_ID, CreatedAt, UpdatedAt) VALUES (?, ?, ?, ?)", {
   "0x1234567890123456789012345678901234567890",
@@ -126,3 +139,5 @@ Admin:apply("INSERT INTO Investments (Wallet_Address, iToken_Address, oToken_Add
   100,
   os.date("%Y-%m-%d %H:%M:%S")
 })
+
+Admin:exec("INSERT INTO Investments (Wallet_Address, iToken_Address, oToken_Address, numberOfTokens, DayOfInvestment) VALUES ('xW9OPT4SeRYfIPMVpcibU7C4SevCvxduDKf6y575ic8', '123345aklsdjkfa', '109234ujaksdhfk102938', 5, '10')")

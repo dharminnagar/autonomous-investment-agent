@@ -12,7 +12,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useEffect, useState } from "react";
-import { useConnection } from "arweave-wallet-kit";
+import { useConnection, useActiveAddress } from "arweave-wallet-kit";
 import { toast } from "sonner";
 import { mainProcessId } from "@/lib/config";
 import { messageResult } from "@/lib/aoService";
@@ -20,9 +20,11 @@ import { Loader2 } from "lucide-react";
 
 export const InvestmentPage = () => {
     const { connected } = useConnection();
+    const address = useActiveAddress();
     const [amount, setAmount] = useState(0);
-    const [token, setToken] = useState("AR");
-    const [cronDate, setCronDate] = useState(1);
+    const [inputToken, setInputToken] = useState("STAR1");
+    const [outputToken, setOutputToken] = useState("STAR2");
+    const [cronDate, setCronDate] = useState<number>(1);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -38,14 +40,12 @@ export const InvestmentPage = () => {
             setIsLoading(true);
             const res = await messageResult(mainProcessId, [
                 { name: "Action", value: "storeInvestment" },
-                { name: "amount", value: amount.toString() },
-                { name: "token", value: token },
-                { name: "cronDate", value: cronDate.toString() },
+                { name: "Wallet_Address", value: address! },
+                { name: "iToken_Address", value: inputToken },
+                { name: "oToken_Address", value: outputToken },
+                { name: "numberOfTokens", value: amount.toString() },
+                { name: "DayOfInvestment", value: cronDate.toString() },
             ]);
-
-            console.log(res);
-            toast("Investment processed successfully");
-            return;
 
             if (res.Output === "Transaction has been added.") {
                 toast("Investment added.");
@@ -71,49 +71,50 @@ export const InvestmentPage = () => {
                     <div>
                         <CardTitle className="text-2xl mb-1">Allocating</CardTitle>
                         <CardDescription className="text-xl">
-                            {amount} {token}
+                            {amount} {inputToken}
                         </CardDescription>
                     </div>
 
                     <Separator />
 
+                    {/* TODO: Change values of Tokens to Token Addresses */}
                     <div className="space-y-4">
                         <div className="flex justify-between items-center gap-4">
-                            <Select value={token} onValueChange={setToken}>
+                            <Select value={inputToken} onValueChange={setInputToken}>
                                 <SelectTrigger className="w-32">
                                     <div className="flex items-center gap-2">
                                         <SelectValue placeholder="AR" />
                                     </div>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="AR">
+                                    <SelectItem value="STAR1">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
                                                     $
                                                 </span>
                                             </div>
-                                            AR
+                                            STAR1
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="AO">
+                                    <SelectItem value="STAR2">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
                                                     A
                                                 </span>
                                             </div>
-                                            AO
+                                            STAR2
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="TEST">
+                                    <SelectItem value="STAR3">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-gray-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
                                                     T
                                                 </span>
                                             </div>
-                                            TEST
+                                            STAR3
                                         </div>
                                     </SelectItem>
                                 </SelectContent>
@@ -123,41 +124,41 @@ export const InvestmentPage = () => {
                                 <ChevronRightIcon className="w-6 h-6 text-gray-600" />
                             </div>
 
-                            <Select>
+                            <Select value={outputToken} onValueChange={setOutputToken}>
                                 <SelectTrigger className="w-32">
                                     <div className="flex items-center gap-2">
                                         <SelectValue placeholder="AO" />
                                     </div>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="AR">
+                                    <SelectItem value="STAR1">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
                                                     $
                                                 </span>
                                             </div>
-                                            AR
+                                            STAR1
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="AO">
+                                    <SelectItem value="STAR2">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
                                                     A
                                                 </span>
                                             </div>
-                                            AO
+                                            STAR2
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="TEST">
+                                    <SelectItem value="STAR3">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-gray-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
                                                     T
                                                 </span>
                                             </div>
-                                            TEST
+                                            STAR3
                                         </div>
                                     </SelectItem>
                                 </SelectContent>

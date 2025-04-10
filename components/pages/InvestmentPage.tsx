@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import { useConnection, useActiveAddress } from "arweave-wallet-kit";
 import { toast } from "sonner";
 import { mainProcessId } from "@/lib/config";
-import { messageResult } from "@/lib/aoService";
+import { dryrunResult, messageResult } from "@/lib/aoService";
 import { Loader2 } from "lucide-react";
 
 export const InvestmentPage = () => {
@@ -38,6 +38,11 @@ export const InvestmentPage = () => {
     async function storeInvestment() {
         try {
             setIsLoading(true);
+            const userProcessId = await dryrunResult(mainProcessId, [
+                { name: "Action", value: "getUser" },
+                { name: "Wallet_Address", value: address! },
+            ])
+
             const res = await messageResult(mainProcessId, [
                 { name: "Action", value: "storeInvestment" },
                 { name: "Wallet_Address", value: address! },
@@ -45,6 +50,10 @@ export const InvestmentPage = () => {
                 { name: "oToken_Address", value: outputToken },
                 { name: "numberOfTokens", value: amount.toString() },
                 { name: "DayOfInvestment", value: cronDate.toString() },
+                { name: "InputTokenDecimal", value: "12" },
+                { name: "OutputTokenDecimal", value: "12" },
+                { name: "PERSON_PID", value: userProcessId },
+                { name: "Active", value: "true" },
             ]);
 
             if (res.Messages[0]?.Data === "Investment has been added.") {

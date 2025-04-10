@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { mainProcessId } from "@/lib/config";
-import { dryrunResult, messageResult } from "@/lib/aoService";
+import { dryrunResult } from "@/lib/aoService";
 import { Loader2, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -16,6 +16,10 @@ type Investment = {
     oToken_Address: string;
     numberOfTokens: number;
     Date: string;
+    InputTokenDecimal: number;
+    OutputTokenDecimal: number;
+    PERSON_PID: string;
+    Active: boolean;
 }
 
 export const PortfolioPage = () => {
@@ -53,7 +57,7 @@ export const PortfolioPage = () => {
         };
 
         fetchData();
-    }, [connected]);
+    }, [connected, address]);
 
     const LoadingSpinner = () => (
         <div className="flex items-center justify-center">

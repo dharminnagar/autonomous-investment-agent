@@ -104,12 +104,16 @@ end
 
 -- Handler to store a new investment
 Handlers.add("storeInvestment", "storeInvestment", function(msg)
-  Admin:apply("INSERT INTO Investments (Wallet_Address, iToken_Address, oToken_Address, numberOfTokens, DayOfInvestment) VALUES (?, ?, ?, ?, ?)", {
+  Admin:apply("INSERT INTO Investments (Wallet_Address, iToken_Address, oToken_Address, numberOfTokens, DayOfInvestment, InputTokenDecimal, OutputTokenDecimal, PERSON_PID, Active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", {
     msg.Tags.Wallet_Address,
     msg.Tags.iToken_Address,
     msg.Tags.oToken_Address,
     msg.Tags.numberOfTokens,
-    msg.Tags.DayOfInvestment
+    msg.Tags.DayOfInvestment,
+    msg.Tags.InputTokenDecimal,
+    msg.Tags.OutputTokenDecimal,
+    msg.Tags.PERSON_PID,
+    msg.Tags.Active
   })
   msg.reply({ Data = "Investment has been added." })
 end

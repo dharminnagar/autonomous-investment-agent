@@ -5,7 +5,7 @@ import { LandingPage } from "@/components/pages/LandingPage";
 import { toast } from "sonner";
 import { mainProcessId } from "@/lib/config";
 import { useRouter } from "next/navigation";
-import { spawnProcess, messageResult } from "@/lib/aoService";
+import { spawnProcess, messageResult, dryrunResult } from "@/lib/aoService";
 
 export default function Home() {
     const { connected } = useConnection();
@@ -21,26 +21,23 @@ export default function Home() {
                 // if not, create user & spawn a new process
                 // if yes, show the toast that wallet is connected
 
-                try {
                   console.log("Getting user");
-                    const user = await messageResult(mainProcessId, [
+                    const user = await dryrunResult(mainProcessId, [
                         { name: "function", value: "getUser" },
                         { name: "Wallet_Address", value: address },
                     ]);
 
                     console.log("User", user);
-                    const userData = JSON.parse(user.Messages[0]?.Data || "[]");
 
-                    console.log("User data", userData);
-
-                    if(!userData || userData.length === 0) {
+                    if(!user || user.length === 0) {
                       console.log("User not found, spawning process");
-                      console.log(window.arweaveWallet)
+                      
                       const processId = await spawnProcess();
+
                       if(processId) {
-                        console.log("Process spawned, adding user");
+                        console.log("Process spawned, adding user", processId);
                         await messageResult(mainProcessId, [
-                          { name: "function", value: "addUser" },
+                          { name: "Action", value: "addUser" },
                           { name: "Wallet_Address", value: address },
                           { name: "Process_ID", value: processId },
                         ]);
@@ -48,9 +45,6 @@ export default function Home() {
                         console.error("Error spawning process");
                       }
                     }
-                } catch (error) {
-                    console.error("Error fetching user", error);
-                }
 
                 toast("dum dum says your wallet is connected!", {
                     action: {

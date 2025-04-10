@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { connect, createDataItemSigner, dryrun, message, result } from "@permaweb/aoconnect";
+import { connect, spawn, createDataItemSigner, dryrun, message, result } from "@permaweb/aoconnect";
 
 export type Tag = { name: string; value: string };
 
@@ -18,11 +18,16 @@ export const getInstance = () => {
     const { cu, mu, gateway } = getUrls();
     instance = connect({ MODE: "legacy", CU_URL: cu, MU_URL: mu, GATEWAY_URL: gateway });
   }
+  console.log(instance);
   return instance;
 }
 
 export async function spawnProcess(name?: string, tags?: Tag[]) {
-    const ao = getInstance();
+  // const ao = getInstance();
+
+  const signer = createDataItemSigner(window.arweaveWallet);
+
+  console.log(signer);
 
     if (!tags) {
         tags = [];
@@ -31,11 +36,11 @@ export async function spawnProcess(name?: string, tags?: Tag[]) {
     tags = name ? [...tags, { name: "Name", value: name }] : tags;
     tags = [...tags, { name: 'Authority', value: 'fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY' }];
 
-    const result = await ao.spawn({
-        module: "33d-3X8mpv6xYBIVB-eXMrPfH5Kzf6HiwhcvOUA10sw",
+    const result = await spawn({
+        module: "ghSkge2sIUD_F00ym5sEimC63BDBuBrq4b5OcwxOjiw",
         scheduler: "_GQ33BkPtZrqxA84vM8Zk-N2aO0toNNu_C-l-rawrBA",
         tags,
-        signer: createDataItemSigner(window.arweaveWallet)
+        signer
     });
 
     return result;
@@ -45,7 +50,7 @@ export async function dryrunResult(userProcess: string, tags: { name: string; va
     const res = await dryrun({
       process: userProcess,
       tags,
-    }).then((res) => JSON.parse(res.Messages[0].Data))
+    }).then((res) => JSON.parse(res.Messages[0]?.Data || "[]"))
   
     return res
   }

@@ -16,8 +16,7 @@ Admin:exec([[
   CREATE TABLE IF NOT EXISTS Users (
     Wallet_Address TEXT PRIMARY KEY,
     Process_ID TEXT,
-    CreatedAt TEXT,
-    UpdatedAt TEXT
+    CreatedAt TEXT
   );
 ]])
 
@@ -52,21 +51,12 @@ Admin:exec([[
   );
 ]])
 
-
 -- Handler to insert a new user
 Handlers.add("addUser", "addUser", function(msg)
-  local results = Admin:select('SELECT id FROM Users WHERE Wallet_Address = ?;', { msg.Tags.Wallet_Address })
-
-  if #results > 0 then
-    msg.reply({ Data = "You are already registered." })
-    return
-  end
-
-  Admin:apply('INSERT INTO Users (Wallet_Address, Process_ID, CreatedAt, UpdatedAt) VALUES (?, ?, ?, ?)', {
+  Admin:apply('INSERT INTO Users (Wallet_Address, Process_ID, CreatedAt) VALUES (?, ?, ?)', {
     msg.Tags.Wallet_Address,
     msg.Tags.Process_ID,
     os.date("%Y-%m-%d %H:%M:%S"),
-    os.date("%Y-%m-%d %H:%M:%S")
   })
   msg.reply({ Data = "You have been registered." })
 end
@@ -126,10 +116,9 @@ end
 )
 
 -- Example usage
-Admin:apply("INSERT INTO Users (Wallet_Address, Process_ID, CreatedAt, UpdatedAt) VALUES (?, ?, ?, ?)", {
+Admin:apply("INSERT INTO Users (Wallet_Address, Process_ID, CreatedAt) VALUES (?, ?, ?)", {
   "0x1234567890123456789012345678901234567890",
   "1234567890",
-  os.date("%Y-%m-%d %H:%M:%S"),
   os.date("%Y-%m-%d %H:%M:%S")
 })
 Admin:apply("INSERT INTO Investments (Wallet_Address, iToken_Address, oToken_Address, numberOfTokens, DayOfInvestment) VALUES (?, ?, ?, ?, ?)", {

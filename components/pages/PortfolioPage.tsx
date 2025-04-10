@@ -6,7 +6,9 @@ import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/c
 import { Separator } from "@/components/ui/separator";
 import { mainProcessId } from "@/lib/config";
 import { dryrunResult, messageResult } from "@/lib/aoService";
-import { Loader2 } from "lucide-react";
+import { Loader2, PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 type Investment = {
     Wallet_Address: string;
@@ -63,11 +65,19 @@ export const PortfolioPage = () => {
         <div className="flex flex-col items-center justify-center w-full h-[70vh]">
             <Card className="w-[58vw] h-[52vh] rounded-none bg-[white]/80 backdrop-blur-md border-gray-800">
                 <CardContent className="p-6 space-y-6">
-                    <div>
-                        <CardTitle className="text-2xl mb-1">Portfolio Overview</CardTitle>
-                        <CardDescription className="text-xl">
-                            Your Investment Statistics
-                        </CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle className="text-2xl mb-1">Portfolio Overview</CardTitle>
+                            <CardDescription className="text-xl">
+                                Your Investment Statistics
+                            </CardDescription>
+                        </div>
+                        <Link href="/invest">
+                            <Button className="flex items-center gap-2">
+                                <PlusCircle className="h-4 w-4" />
+                                New Investment
+                            </Button>
+                        </Link>
                     </div>
 
                     <div className="grid grid-cols-2 gap-6">
@@ -119,7 +129,13 @@ export const PortfolioPage = () => {
                             <div className="space-y-2">
                                 <h3 className="text-sm font-medium text-gray-500">Next Investment Date</h3>
                                 <div className="text-3xl font-bold">
-                                    {new Date().getDate()}
+                                    {loading ? (
+                                        <LoadingSpinner />
+                                    ) : (
+                                        <>
+                                            {new Date().getDate()}
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>

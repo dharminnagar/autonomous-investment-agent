@@ -10,7 +10,6 @@ export const Header = () => {
                     Invest<span className="underline">Ar</span>
                 </Link>
                 <div className="flex items-center gap-4 text-sm text-black">
-                    {/* TODO: Add Straight line for divider */}
                     <div className="h-6 w-0.5 bg-black" />
                     <Link
                         href="/portfolio"
@@ -23,6 +22,12 @@ export const Header = () => {
                         className="text-lg hover:underline hover:underline-offset-4 hover:decoration-2"
                     >
                         Invest
+                    </Link>
+                    <Link
+                        href="/mint"
+                        className="text-lg hover:underline hover:underline-offset-4 hover:decoration-2"
+                    >
+                        Mint
                     </Link>
                 </div>
             </div>

@@ -47,7 +47,7 @@ export const InvestmentPage = () => {
                 { name: "DayOfInvestment", value: cronDate.toString() },
             ]);
 
-            if (res.Output === "Transaction has been added.") {
+            if (res.Messages[0]?.Data === "Investment has been added.") {
                 toast("Investment added.");
             } else {
                 toast.error("Investment Failed.");

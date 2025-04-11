@@ -28,10 +28,9 @@ end
 db = db or require("lsqlite3").open_memory()
 -- Removing the last execution time for testing purposes.
 
-db:exec([[
+db:exec[[
     CREATE TABLE IF NOT EXISTS Investments (
-        INVESTMENT_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        Wallet_Address TEXT REFERENCES Users(Wallet_Address),
+        ID INTEGER PRIMARY KEY AUTOINCREMENT,
         InputTokenAddress TEXT NOT NULL,
         OutputTokenAddress TEXT NOT NULL,
         Amount TEXT NOT NULL,
@@ -41,7 +40,100 @@ db:exec([[
         PERSON_PID TEXT NOT NULL,
         Active BOOLEAN NOT NULL DEFAULT true
     )
+]]
+
+db:exec([[
+    CREATE TABLE IF NOT EXISTS Users (
+        Wallet_Address TEXT PRIMARY KEY,
+        Process_ID TEXT,
+        CreatedAt TEXT
+    );
 ]])
+
+-- Create the Transactions table
+db:exec([[
+    CREATE TABLE IF NOT EXISTS Transactions (
+        TX_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Wallet_Address TEXT REFERENCES Users(Wallet_Address),
+        PLAN_ID INTEGER REFERENCES Investments(INVESTMENT_ID),
+        ExecutedAt TEXT
+    );
+]])
+
+-- Handler to insert a new user
+Handlers.add("addUser", "addUser", function(msg)
+    local stmt = db:prepare('INSERT INTO Users (Wallet_Address, Process_ID, CreatedAt) VALUES (?, ?, ?)')
+    stmt:bind(1, msg.Tags.Wallet_Address)
+    stmt:bind(2, msg.Tags.Process_ID)
+    stmt:bind(3, os.date("%Y-%m-%d %H:%M:%S"))
+    stmt:step()
+    stmt:finalize()
+    msg.reply({ Data = "You have been registered." })
+end
+)
+
+Handlers.add("getUser", "getUser", function(msg)
+    local results = {}
+    for row in db:nrows('SELECT * FROM Users WHERE Wallet_Address = ?', {msg.Tags.Wallet_Address}) do
+        table.insert(results, row)
+    end
+    msg.reply({ Data = results })
+end
+)
+
+-- Handler to get all investment plans
+Handlers.add("getInvestmentPlans", "getInvestmentPlans", function(msg)
+    local results = {}
+    for row in db:nrows('SELECT * FROM Investments WHERE Wallet_Address = ?', {msg.Tags.Wallet_Address}) do
+        table.insert(results, row)
+    end
+    msg.reply({ Data = results })
+end
+)
+
+-- Handler to get latest investment plan
+Handlers.add("getLatestInvestment", "getLatestInvestment", function(msg)
+    local results = {}
+    for row in db:nrows('SELECT * FROM Investments WHERE Wallet_Address = ? ORDER BY INVESTMENT_ID DESC LIMIT 1', {msg.Tags.Wallet_Address}) do
+        table.insert(results, row)
+    end
+    msg.reply({ Data = results })
+end
+)
+
+-- Handler to get a specific investment plan
+Handlers.add("getInvestmentPlan", "getInvestmentPlan", function(msg)
+    local results = {}
+    for row in db:nrows('SELECT * FROM Investments WHERE Wallet_Address = ? AND INVESTMENT_ID = ?', 
+        {msg.Tags.Wallet_Address, msg.Tags.INVESTMENT_ID}) do
+        table.insert(results, row)
+    end
+    msg.reply({ Data = results })
+end
+)
+
+-- Handler to get all transactions for a specific investment plan
+Handlers.add("getInvestmentTransactions", "getInvestmentTransactions", function(msg)
+    local results = {}
+    for row in db:nrows('SELECT * FROM Transactions WHERE Wallet_Address = ? AND PLAN_ID = ?',
+        {msg.Tags.Wallet_Address, msg.Tags.INVESTMENT_ID}) do
+        table.insert(results, row)
+    end
+    msg.reply({ Data = results })
+end
+)
+
+-- Handler to save a new transaction
+Handlers.add("saveTransaction", "saveTransaction", function(msg)
+    local stmt = db:prepare('INSERT INTO Transactions (Wallet_Address, PLAN_ID, ExecutedAt) VALUES (?, ?, ?)')
+    stmt:bind(1, msg.Tags.Wallet_Address)
+    stmt:bind(2, msg.Tags.INVESTMENT_ID)
+    stmt:bind(3, os.date("%Y-%m-%d %H:%M:%S"))
+    stmt:step()
+    stmt:finalize()
+    msg.reply({ Data = "Transaction has been added." })
+end
+)
 
 -- Common error handler
 function handle_run(func, msg)
@@ -57,6 +149,18 @@ function handle_run(func, msg)
             })
         end
     end
+end
+
+function printTable(tbl, indent)
+  indent = indent or ""
+  for k, v in pairs(tbl) do
+    if type(v) == "table" then
+      print(indent .. k .. ":")
+      printTable(v, indent .. "  ")
+    else
+      print(indent .. k .. ": " .. tostring(v))
+    end
+  end
 end
 
 -- Cron handler to check and execute pending swaps
@@ -75,8 +179,11 @@ function Cron(msg)
         table.insert(to_swap, row)
     end
 
+    
+
     for _, investment in ipairs(to_swap) do
         -- Execute the swap
+        print(investment)
         ExecuteSwap(investment)
         
         -- Send a notification about the executed swap
@@ -84,7 +191,7 @@ function Cron(msg)
             Target = investment.PERSON_PID,
             Action = "InvestmentExecuted",
             Data = string.format("Investment plan with ID %d was executed on %s", 
-                investment.INVESTMENT_ID, formatTimestamp(msg.Timestamp, 5.5)),
+                investment.ID, formatTimestamp(msg.Timestamp, 5.5)),
             Result = "success"
         })
     end
@@ -202,14 +309,14 @@ function CancelInvestmentHandler(msg)
     
     -- Check if the investment exists
     local exists = false
-    for row in db:nrows(string.format("SELECT INVESTMENT_ID FROM Investments WHERE INVESTMENT_ID = %d", investment_id)) do
+    for row in db:nrows(string.format("SELECT ID FROM Investments WHERE ID = %d", investment_id)) do
         exists = true
     end
     
     assert(exists, "Investment with ID " .. investment_id .. " not found")
     
     -- Deactivate the investment
-    db:exec(string.format("UPDATE Investments SET Active = false WHERE INVESTMENT_ID = %d", investment_id))
+    db:exec(string.format("UPDATE Investments SET Active = false WHERE ID = %d", investment_id))
     
     -- Send confirmation
     Send({
@@ -241,7 +348,7 @@ function ListInvestmentsHandler(msg)
         end
         
         table.insert(investments, {
-            ID = row.INVESTMENT_ID,
+            ID = row.ID,
             InputTokenAddress = row.InputTokenAddress,
             OutputTokenAddress = row.OutputTokenAddress,
             Amount = row.Amount,

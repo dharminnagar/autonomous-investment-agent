@@ -5,10 +5,18 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { mainProcessId } from "@/lib/config";
-import { dryrunResult, messageResult } from "@/lib/aoService";
+import { dryrunResult } from "@/lib/aoService";
 import { Loader2, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Tokens } from "@/lib/config";
 
 type Investment = {
     Wallet_Address: string;
@@ -16,7 +24,74 @@ type Investment = {
     oToken_Address: string;
     numberOfTokens: number;
     Date: string;
+    RecurringDay: number;
 }
+
+const InvestmentPlansDialog = ({ 
+    open, 
+    onOpenChange, 
+    investments 
+}: { 
+    open: boolean; 
+    onOpenChange: (open: boolean) => void; 
+    investments: Investment[];
+}) => {
+    const getNextInvestmentDate = (recurringDay: number) => {
+        const today = new Date();
+        const nextDate = new Date(today.getFullYear(), today.getMonth(), recurringDay);
+        if (nextDate < today) {
+            nextDate.setMonth(nextDate.getMonth() + 1);
+        }
+        return nextDate;
+    };
+
+    const getTokenSymbol = (address: string) => {
+        return Object.values(Tokens).find(token => token.address === address)?.symbol || 'Unknown';
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Investment Plans</DialogTitle>
+                    <DialogDescription>
+                        View all your active investment plans
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    {investments.map((investment, index) => {
+                        const nextDate = getNextInvestmentDate(investment.RecurringDay);
+                        return (
+                            <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                            <span className="text-white font-bold">$</span>
+                                        </div>
+                                        <div>
+                                            <div className="font-medium">
+                                                {getTokenSymbol(investment.iToken_Address)} → {getTokenSymbol(investment.oToken_Address)}
+                                            </div>
+                                            <div className="text-sm text-gray-500">
+                                                {investment.numberOfTokens} tokens
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="font-medium">Next Investment</div>
+                                    <div className="text-sm text-gray-500">
+                                        {nextDate.toLocaleDateString()}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 export const PortfolioPage = () => {
     const { connected } = useConnection();
@@ -25,6 +100,9 @@ export const PortfolioPage = () => {
     const [totalInvested, setTotalInvested] = useState(0);
     const [totalReturns, setTotalReturns] = useState(0);
     const [activeInvestments, setActiveInvestments] = useState(0);
+    const [investments, setInvestments] = useState<Investment[]>([]);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [nextInvestmentDate, setNextInvestmentDate] = useState<Date | null>(null);
 
     useEffect(() => {
         console.log("Connected", connected + ": " + address);
@@ -39,21 +117,36 @@ export const PortfolioPage = () => {
             }
             
             // Fetch investment data from database
-            const investments: Investment[] = await dryrunResult(mainProcessId, [
+            const investmentData: Investment[] = await dryrunResult(mainProcessId, [
                 { name: "Action", value: "getInvestmentPlans" },
                 { name: "Wallet_Address", value: address },
             ]);
 
-            setTotalInvested(investments.reduce((acc: number, curr: Investment) => acc + curr.numberOfTokens, 0));
-            setTotalReturns(investments.reduce((acc: number, curr: Investment) => acc + (curr.numberOfTokens - (curr.numberOfTokens * 0.90)), 0));
-            setActiveInvestments(investments.length);
+            setInvestments(investmentData);
+            setTotalInvested(investmentData.reduce((acc: number, curr: Investment) => acc + curr.numberOfTokens, 0));
+            setTotalReturns(investmentData.reduce((acc: number, curr: Investment) => acc + (curr.numberOfTokens - (curr.numberOfTokens * 0.90)), 0));
+            setActiveInvestments(investmentData.length);
 
-            console.log(investments);
+            // Calculate next investment date
+            if (investmentData.length > 0) {
+                const today = new Date();
+                const nextDates = investmentData.map(inv => {
+                    const nextDate = new Date(today.getFullYear(), today.getMonth(), inv.RecurringDay);
+                    if (nextDate < today) {
+                        nextDate.setMonth(nextDate.getMonth() + 1);
+                    }
+                    return nextDate;
+                });
+                const closestDate = nextDates.reduce((a, b) => a < b ? a : b);
+                setNextInvestmentDate(closestDate);
+            }
+
+            console.log(investmentData);
             setLoading(false);
         };
 
         fetchData();
-    }, [connected]);
+    }, [connected, address]);
 
     const LoadingSpinner = () => (
         <div className="flex items-center justify-center">
@@ -121,6 +214,13 @@ export const PortfolioPage = () => {
                                         <>
                                             <span className="text-3xl font-bold">{activeInvestments}</span>
                                             <span className="text-lg text-gray-600">positions</span>
+                                            <Button 
+                                                variant="link" 
+                                                className="text-sm text-black"
+                                                onClick={() => setDialogOpen(true)}
+                                            >
+                                                View All
+                                            </Button>
                                         </>
                                     )}
                                 </div>
@@ -132,9 +232,7 @@ export const PortfolioPage = () => {
                                     {loading ? (
                                         <LoadingSpinner />
                                     ) : (
-                                        <>
-                                            {new Date().getDate()}
-                                        </>
+                                        nextInvestmentDate ? nextInvestmentDate.getDate() : '-'
                                     )}
                                 </div>
                             </div>
@@ -142,7 +240,9 @@ export const PortfolioPage = () => {
                     </div>
 
                     <Separator />
+                    
 
+                    {/* This is just for the current implementation, as the process is under development */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-medium text-gray-500">Recent Activity</h3>
                         <div className="space-y-2">
@@ -157,13 +257,12 @@ export const PortfolioPage = () => {
                                             <span className="text-white font-bold">$</span>
                                         </div>
                                         <div>
-                                            <div className="font-medium">AR → AO</div>
+                                            <div className="font-medium">STAR1 → STAR2</div>
                                             <div className="text-sm text-gray-500">Today</div>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-medium">0.5 AR</div>
-                                        <div className="text-sm text-gray-500">Pending</div>
+                                        <div className="font-medium">5 STAR1</div>
                                     </div>
                                 </div>
                             )}
@@ -171,6 +270,12 @@ export const PortfolioPage = () => {
                     </div>
                 </CardContent>
             </Card>
+
+            <InvestmentPlansDialog 
+                open={dialogOpen} 
+                onOpenChange={setDialogOpen} 
+                investments={investments}
+            />
         </div>
     );
 };

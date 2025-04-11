@@ -14,7 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import { useConnection, useActiveAddress } from "arweave-wallet-kit";
 import { toast } from "sonner";
-import { mainProcessId } from "@/lib/config";
+import { mainProcessId, Tokens } from "@/lib/config";
 import { dryrunResult, messageResult } from "@/lib/aoService";
 import { Loader2 } from "lucide-react";
 
@@ -48,47 +48,7 @@ export const InvestmentPage = () => {
         fetchProcessId();
     }, [address]);
 
-    async function storeInvestment() {
-        try {
-            setIsLoading(true);
-            console.log("inputtoken", inputToken);
-            console.log("outputtoken", outputToken);
-
-            const res = await messageResult(mainProcessId, [
-                { name: "Action", value: "storeInvestment" },
-                { name: "Wallet_Address", value: address! },
-                { name: "InputTokenAddress", value: inputToken },
-                { name: "OutputTokenAddress", value: outputToken },
-                { name: "Amount", value: amount.toString() },
-                { name: "InputTokenDecimal", value: "12" },
-                { name: "OutputTokenDecimal", value: "12" },
-                { name: "RecurringDay", value: cronDate.toString() },
-                { name: "PERSON_PID", value: userPid! },
-                { name: "Active", value: "1" }
-            ]);
-
-            console.log("response from aoService", res);
-        } catch (error) {
-            toast.error("An error occurred while processing your investment.");
-            console.error(error);
-        } finally {
-            setIsLoading(false);
-        }
-    }
-
     async function handleConfirm() {
-        // storeInvestment();
-
-        // setTimeout(() => {}, 1000);
-
-        // const investmentId = (await dryrunResult(mainProcessId, [
-        //     { name: "Action", value: "getLatestInvestment" },
-        //     { name: "Wallet_Address", value: address! },
-        // ]));
-
-        // setTimeout(() => {}, 1000);
-        
-        // console.log("final investmentId", investmentId);
         console.log("final userPid", userPid);
 
         toast("Started Investment Process. It may take a while.");
@@ -130,7 +90,9 @@ export const InvestmentPage = () => {
                     <div>
                         <CardTitle className="text-2xl mb-1">Allocating</CardTitle>
                         <CardDescription className="text-xl">
-                            {amount} {inputToken}
+                            {amount}{" "}
+                            {Object.values(Tokens).find((token) => token.address === inputToken)
+                                ?.symbol || "STAR1"}
                         </CardDescription>
                     </div>
 
@@ -141,39 +103,64 @@ export const InvestmentPage = () => {
                         <div className="flex justify-between items-center gap-4">
                             <Select value={inputToken} onValueChange={setInputToken}>
                                 <SelectTrigger className="w-32">
-                                    <div className="flex items-center gap-2">
-                                        <SelectValue placeholder="AR" />
-                                    </div>
+                                    <SelectValue placeholder="Select Token">
+                                        {inputToken && (
+                                            <div className="flex items-center gap-2">
+                                                <div
+                                                    className={`w-6 h-6 rounded-full ${
+                                                        inputToken === Tokens.STAR1.address
+                                                            ? "bg-blue-500"
+                                                            : inputToken === Tokens.STAR2.address
+                                                            ? "bg-purple-500"
+                                                            : "bg-gray-500"
+                                                    } flex items-center justify-center`}
+                                                >
+                                                    <span className="text-white font-bold text-sm">
+                                                        {inputToken === Tokens.STAR1.address
+                                                            ? "$"
+                                                            : inputToken === Tokens.STAR2.address
+                                                            ? "A"
+                                                            : "T"}
+                                                    </span>
+                                                </div>
+                                                {
+                                                    Object.values(Tokens).find(
+                                                        (token) => token.address === inputToken
+                                                    )?.symbol
+                                                }
+                                            </div>
+                                        )}
+                                </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="lvfxYbBRqmWpNWcMaor7aEIA4_CiOQCfLnT2ymzDX84">
+                                    <SelectItem value={Tokens.STAR1.address}>
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
                                                     $
                                                 </span>
                                             </div>
-                                            STAR1
+                                            {Tokens.STAR1.symbol}
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="Yv5NjWA1zCFNNSksDc6yNUC3pdaMh6jNHCKUPIUhdWE">
+                                    <SelectItem value={Tokens.STAR2.address}>
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
                                                     A
                                                 </span>
                                             </div>
-                                            STAR2
+                                            {Tokens.STAR2.symbol}
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="R7CR9GicDSk1_PAzXP0kwbSyrgBzWBeOg">
+                                    <SelectItem value={Tokens.STAR3.address}>
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-gray-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
                                                     T
                                                 </span>
                                             </div>
-                                            STAR3
+                                            {Tokens.STAR3.symbol}
                                         </div>
                                     </SelectItem>
                                 </SelectContent>
@@ -185,39 +172,64 @@ export const InvestmentPage = () => {
 
                             <Select value={outputToken} onValueChange={setOutputToken}>
                                 <SelectTrigger className="w-32">
-                                    <div className="flex items-center gap-2">
-                                        <SelectValue placeholder="AO" />
-                                    </div>
+                                    <SelectValue placeholder="Select Token">
+                                        {outputToken && (
+                                            <div className="flex items-center gap-2">
+                                                <div
+                                                    className={`w-6 h-6 rounded-full ${
+                                                        outputToken === Tokens.STAR1.address
+                                                            ? "bg-blue-500"
+                                                            : outputToken === Tokens.STAR2.address
+                                                            ? "bg-purple-500"
+                                                            : "bg-gray-500"
+                                                    } flex items-center justify-center`}
+                                                >
+                                                    <span className="text-white font-bold text-sm">
+                                                        {outputToken === Tokens.STAR1.address
+                                                            ? "$"
+                                                            : outputToken === Tokens.STAR2.address
+                                                            ? "A"
+                                                            : "T"}
+                                                    </span>
+                                                </div>
+                                                {
+                                                    Object.values(Tokens).find(
+                                                        (token) => token.address === outputToken
+                                                    )?.symbol
+                                                }
+                                            </div>
+                                        )}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="lvfxYbBRqmWpNWcMaor7aEIA4_CiOQCfLnT2ymzDX84">
+                                    <SelectItem value={Tokens.STAR1.address}>
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
                                                     $
                                                 </span>
                                             </div>
-                                            STAR1
+                                            {Tokens.STAR1.symbol}
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="Yv5NjWA1zCFNNSksDc6yNUC3pdaMh6jNHCKUPIUhdWE">
+                                    <SelectItem value={Tokens.STAR2.address}>
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
                                                     A
                                                 </span>
                                             </div>
-                                            STAR2
+                                            {Tokens.STAR2.symbol}
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="R7CR9GicDSk1_PAzXP0kwbSyrgBzWBeOg">
+                                    <SelectItem value={Tokens.STAR3.address}>
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-gray-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
                                                     T
                                                 </span>
                                             </div>
-                                            STAR3
+                                            {Tokens.STAR3.symbol}
                                         </div>
                                     </SelectItem>
                                 </SelectContent>
@@ -255,9 +267,9 @@ export const InvestmentPage = () => {
 
                         <Separator />
 
-                        <Button 
-                            className="w-full h-12 text-lg" 
-                            size="lg" 
+                        <Button
+                            className="w-full h-12 text-lg"
+                            size="lg"
                             onClick={handleConfirm}
                             disabled={isLoading}
                         >

@@ -1,8 +1,9 @@
+import { GitHubIconDark } from "@/lib/icons";
 import { ConnectButton } from "arweave-wallet-kit";
 import Link from "next/link";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 export const Header = () => {
-
     return (
         <div className="flex items-center justify-between p-4 h-[10vh] border-2 border-black">
             <div className="flex items-center gap-4">
@@ -31,7 +32,25 @@ export const Header = () => {
                     </Link>
                 </div>
             </div>
-            <ConnectButton />
+            <div className="flex items-center gap-4">
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <a
+                                href="https://github.com/dharminnagar/autonomous-investment-agent"
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                <GitHubIconDark size={36} />
+                            </a>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>View the code on GitHub</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+                <ConnectButton />
+            </div>
         </div>
     );
 };

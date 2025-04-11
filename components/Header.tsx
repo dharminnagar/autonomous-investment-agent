@@ -8,7 +8,7 @@ export const Header = () => {
         <div className="flex items-center justify-between p-4 h-[10vh] border-2 border-black">
             <div className="flex items-center gap-4">
                 <Link href="/" className="text-4xl font-bold">
-                    Invest<span className="underline">Ar</span>
+                    Inve<span className="text-red-600">st<span className="underline decoration-black">Ar</span></span>
                 </Link>
                 <div className="flex items-center gap-4 text-sm text-black">
                     <div className="h-6 w-0.5 bg-black" />
@@ -29,6 +29,12 @@ export const Header = () => {
                         className="text-lg hover:underline hover:underline-offset-4 hover:decoration-2"
                     >
                         Mint
+                    </Link>
+                    <Link
+                        href="/about"
+                        className="text-lg hover:underline hover:underline-offset-4 hover:decoration-2"
+                    >
+                        About
                     </Link>
                 </div>
             </div>

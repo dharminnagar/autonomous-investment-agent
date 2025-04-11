@@ -2,8 +2,18 @@
 import { motion } from "framer-motion";
 import { Card } from "../ui/card";
 import Image from "next/image";
-
+import { useEffect } from "react";
+import { useConnection } from "arweave-wallet-kit";
+import { toast } from "sonner";
 export const LandingPage = () => {
+    const { connected } = useConnection();
+
+    useEffect(() => {
+        if (connected) {
+            toast("please wait while we connect to your wallet")
+        }
+    }, [connected])
+
     return (
         <div className="flex flex-col items-center justify-center h-[70vh]">
             <Card className="flex flex-col items-center justify-center h-[52vh] w-[58vw] bg-[white]/80 backdrop-blur-md border-gray-800 rounded-none">

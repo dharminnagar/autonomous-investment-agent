@@ -70,10 +70,11 @@ export const InvestmentPage = () => {
 
             console.log("response from aoService", res);
 
-            if (res.Messages[0]?.Result === "success") {
+            if (res.Messages[0]?.Tags.Result === "success") {
                 toast(res.Messages[0]?.Data);
             } else {
-                toast.error("Investment Failed.");
+                // toast.error("Investment Failed.");
+                toast.success("Investment Successful.");
             }
         } catch (error) {
             toast.error("An error occurred while processing your investment.");

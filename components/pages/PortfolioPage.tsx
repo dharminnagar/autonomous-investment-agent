@@ -19,10 +19,11 @@ import {
 import { Tokens } from "@/lib/config";
 
 type Investment = {
+    ID: number;
     Wallet_Address: string;
-    iToken_Address: string;
-    oToken_Address: string;
-    numberOfTokens: number;
+    InputTokenAddress: string;
+    OutputTokenAddress: string;
+    Amount: number;
     Date: string;
     RecurringDay: number;
 }
@@ -70,10 +71,10 @@ const InvestmentPlansDialog = ({
                                         </div>
                                         <div>
                                             <div className="font-medium">
-                                                {getTokenSymbol(investment.iToken_Address)} → {getTokenSymbol(investment.oToken_Address)}
+                                                {getTokenSymbol(investment.InputTokenAddress)} → {getTokenSymbol(investment.OutputTokenAddress)}
                                             </div>
                                             <div className="text-sm text-gray-500">
-                                                {investment.numberOfTokens} tokens
+                                                {Number(investment.Amount || 0).toFixed(2)} tokens
                                             </div>
                                         </div>
                                     </div>
@@ -97,8 +98,8 @@ export const PortfolioPage = () => {
     const { connected } = useConnection();
     const address = useActiveAddress();
     const [loading, setLoading] = useState(false);
-    const [totalInvested, setTotalInvested] = useState(0);
-    const [totalReturns, setTotalReturns] = useState(0);
+    const [totalInvested, setTotalInvested] = useState<string>("0.00");
+    const [totalReturns, setTotalReturns] = useState<string>("0.00");
     const [activeInvestments, setActiveInvestments] = useState(0);
     const [investments, setInvestments] = useState<Investment[]>([]);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -123,8 +124,8 @@ export const PortfolioPage = () => {
             ]);
 
             setInvestments(investmentData);
-            setTotalInvested(investmentData.reduce((acc: number, curr: Investment) => acc + curr.numberOfTokens, 0));
-            setTotalReturns(investmentData.reduce((acc: number, curr: Investment) => acc + (curr.numberOfTokens - (curr.numberOfTokens * 0.90)), 0));
+            setTotalInvested(investmentData.reduce((acc: number, curr: Investment) => acc + Number(curr.Amount || 0), 0).toFixed(2));
+            setTotalReturns(investmentData.reduce((acc: number, curr: Investment) => acc + (Number(curr.Amount || 0) - (Number(curr.Amount || 0) * 0.90)), 0).toFixed(2));
             setActiveInvestments(investmentData.length);
 
             // Calculate next investment date
@@ -245,7 +246,7 @@ export const PortfolioPage = () => {
                     {/* This is just for the current implementation, as the process is under development */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-medium text-gray-500">Recent Activity</h3>
-                        <div className="space-y-2">
+                        {/* <div className="space-y-2">
                             {loading ? (
                                 <div className="flex justify-center py-4">
                                     <LoadingSpinner />
@@ -262,11 +263,11 @@ export const PortfolioPage = () => {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-medium">5 STAR1</div>
+                                        <div className="font-medium">5.00 STAR1</div>
                                     </div>
                                 </div>
                             )}
-                        </div>
+                        </div> */}
                     </div>
                 </CardContent>
             </Card>

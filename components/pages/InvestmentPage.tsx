@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import { useConnection, useActiveAddress } from "arweave-wallet-kit";
 import { toast } from "sonner";
 import { mainProcessId } from "@/lib/config";
-import { messageResult } from "@/lib/aoService";
+import { dryrunResult, messageResult } from "@/lib/aoService";
 import { Loader2 } from "lucide-react";
 
 export const InvestmentPage = () => {
@@ -24,6 +24,7 @@ export const InvestmentPage = () => {
     const [amount, setAmount] = useState(0);
     const [inputToken, setInputToken] = useState("STAR1");
     const [outputToken, setOutputToken] = useState("STAR2");
+    const [userPid, setUserPid] = useState<string | undefined>(undefined);
     const [cronDate, setCronDate] = useState<number>(1);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -35,20 +36,82 @@ export const InvestmentPage = () => {
         }
     }, [connected]);
 
+    useEffect(() => {
+        const fetchProcessId = async () => {
+            const res = await dryrunResult(mainProcessId, [
+                { name: "Action", value: "getUser" },
+                { name: "Wallet_Address", value: address! },
+            ]);
+            setUserPid(res[0].Process_ID);
+        };
+
+        fetchProcessId();
+    }, [address]);
+
     async function storeInvestment() {
         try {
             setIsLoading(true);
+            console.log("inputtoken", inputToken);
+            console.log("outputtoken", outputToken);
+
             const res = await messageResult(mainProcessId, [
                 { name: "Action", value: "storeInvestment" },
                 { name: "Wallet_Address", value: address! },
-                { name: "iToken_Address", value: inputToken },
-                { name: "oToken_Address", value: outputToken },
-                { name: "numberOfTokens", value: amount.toString() },
-                { name: "DayOfInvestment", value: cronDate.toString() },
+                { name: "InputTokenAddress", value: inputToken },
+                { name: "OutputTokenAddress", value: outputToken },
+                { name: "Amount", value: amount.toString() },
+                { name: "InputTokenDecimal", value: "12" },
+                { name: "OutputTokenDecimal", value: "12" },
+                { name: "RecurringDay", value: cronDate.toString() },
+                { name: "PERSON_PID", value: userPid! },
+                { name: "Active", value: "1" }
             ]);
 
-            if (res.Messages[0]?.Data === "Investment has been added.") {
-                toast("Investment added.");
+            console.log("response from aoService", res);
+        } catch (error) {
+            toast.error("An error occurred while processing your investment.");
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    async function handleConfirm() {
+        // storeInvestment();
+
+        // setTimeout(() => {}, 1000);
+
+        // const investmentId = (await dryrunResult(mainProcessId, [
+        //     { name: "Action", value: "getLatestInvestment" },
+        //     { name: "Wallet_Address", value: address! },
+        // ]));
+
+        // setTimeout(() => {}, 1000);
+        
+        // console.log("final investmentId", investmentId);
+        console.log("final userPid", userPid);
+
+        toast("Started Investment Process. It may take a while.");
+
+        try {
+            const res = await messageResult(mainProcessId, [
+                { name: "Action", value: "SetupInvestment" },
+                { name: "Wallet_Address", value: address! },
+                { name: "InputTokenAddress", value: inputToken },
+                { name: "OutputTokenAddress", value: outputToken },
+                { name: "Amount", value: amount.toString() },
+                { name: "InputTokenDecimal", value: "12" },
+                { name: "OutputTokenDecimal", value: "12" },
+                { name: "PERSON_PID", value: userPid! },
+                { name: "RecurringDay", value: cronDate.toString() },
+            ]);
+
+            toast("Almost there. Hang on tight!");
+
+            console.log("response from aoService", res);
+
+            if (res.Messages[0]?.Result === "success") {
+                toast(res.Messages[0]?.Data);
             } else {
                 toast.error("Investment Failed.");
             }
@@ -58,10 +121,6 @@ export const InvestmentPage = () => {
         } finally {
             setIsLoading(false);
         }
-    }
-
-    function handleConfirm() {
-        storeInvestment();
     }
 
     return (
@@ -87,7 +146,7 @@ export const InvestmentPage = () => {
                                     </div>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="STAR1">
+                                    <SelectItem value="lvfxYbBRqmWpNWcMaor7aEIA4_CiOQCfLnT2ymzDX84">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
@@ -97,7 +156,7 @@ export const InvestmentPage = () => {
                                             STAR1
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="STAR2">
+                                    <SelectItem value="Yv5NjWA1zCFNNSksDc6yNUC3pdaMh6jNHCKUPIUhdWE">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
@@ -107,7 +166,7 @@ export const InvestmentPage = () => {
                                             STAR2
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="STAR3">
+                                    <SelectItem value="R7CR9GicDSk1_PAzXP0kwbSyrgBzWBeOg">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-gray-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
@@ -131,7 +190,7 @@ export const InvestmentPage = () => {
                                     </div>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="STAR1">
+                                    <SelectItem value="lvfxYbBRqmWpNWcMaor7aEIA4_CiOQCfLnT2ymzDX84">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
@@ -141,7 +200,7 @@ export const InvestmentPage = () => {
                                             STAR1
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="STAR2">
+                                    <SelectItem value="Yv5NjWA1zCFNNSksDc6yNUC3pdaMh6jNHCKUPIUhdWE">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">
@@ -151,7 +210,7 @@ export const InvestmentPage = () => {
                                             STAR2
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="STAR3">
+                                    <SelectItem value="R7CR9GicDSk1_PAzXP0kwbSyrgBzWBeOg">
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-gray-500 flex items-center justify-center">
                                                 <span className="text-white font-bold text-sm">

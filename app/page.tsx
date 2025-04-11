@@ -23,7 +23,7 @@ export default function Home() {
 
                   console.log("Getting user");
                     const user = await dryrunResult(mainProcessId, [
-                        { name: "function", value: "getUser" },
+                        { name: "Action", value: "getUser" },
                         { name: "Wallet_Address", value: address },
                     ]);
 

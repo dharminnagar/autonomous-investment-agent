@@ -43,3 +43,20 @@ Handlers.add('Swap', 'Swap', function(msg)
            msg.OutputTokenAddress
   })
 end)
+
+
+Handlers.add("RequestTokens", "RequestTokens", function(msg)
+  local amount = tostring(msg.Quantity)
+  local recipient = tostring(msg.Recipient)
+  Send({
+      Target = "lvfxYbBRqmWpNWcMaor7aEIA4_CiOQCfLnT2ymzDX84",
+      Action = "Mint",
+      Recipient = recipient, 
+      Quantity = amount
+  })
+  msg.reply({
+      Target = recipient,
+      Data = "Your tokens have been minted. Amount: " .. amount,
+      Result = "success"
+  })
+end)

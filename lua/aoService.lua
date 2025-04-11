@@ -245,8 +245,8 @@ function SetupInvestmentHandler(msg)
     -- Insert the new investment into the database using prepared statement
     local stmt = db:prepare([[
         INSERT INTO Investments 
-        (InputTokenAddress, OutputTokenAddress, Amount, InputTokenDecimal, OutputTokenDecimal, RecurringDay, PERSON_PID) 
-        VALUES (:input, :output, :amount, :input_decimal, :output_decimal, :day, :person_pid)
+        (Wallet_Address, InputTokenAddress, OutputTokenAddress, Amount, InputTokenDecimal, OutputTokenDecimal, RecurringDay, PERSON_PID) 
+        VALUES (:wallet_address, :input, :output, :amount, :input_decimal, :output_decimal, :day, :person_pid)
     ]])
     
     stmt:bind_names({
@@ -256,7 +256,8 @@ function SetupInvestmentHandler(msg)
         input_decimal = tonumber(msg.InputTokenDecimal),
         output_decimal = tonumber(msg.OutputTokenDecimal),
         day = recurring_day,
-        person_pid = msg.PERSON_PID
+        person_pid = msg.PERSON_PID,
+        wallet_address = msg.Wallet_Address
     })
     
     stmt:step()

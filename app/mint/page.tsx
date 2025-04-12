@@ -1,9 +1,9 @@
-import { MintPage } from "@/components/pages/MintPage";
+import dynamic from "next/dynamic";
 
-export const Mint = () => {
+const MintPage = dynamic(() => import("@/components/pages/MintPage"), { ssr: false });
+
+export default function Mint() {
     return (
         <MintPage />
     )
 }
-
-export default Mint;

@@ -1,11 +1,11 @@
-import { PortfolioPage } from "@/components/pages/PortfolioPage";
+import dynamic from "next/dynamic";
 
-export const Portfolio = () => {
+const PortfolioPage = dynamic(() => import("@/components/pages/PortfolioPage"), { ssr: false });
+
+export default function Portfolio() {
     return (
         <div>
             <PortfolioPage />
         </div>
     )
 }
-
-export default Portfolio;

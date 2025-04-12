@@ -1,11 +1,11 @@
-import { AboutPage } from "@/components/pages/AboutPage";
+import dynamic from "next/dynamic";
 
-export const About = () => {
+const AboutPage = dynamic(() => import("@/components/pages/AboutPage"), { ssr: false });
+
+export default function About() {
     return (
         <div>
             <AboutPage />
         </div>
     )
 }
-
-export default About;

@@ -10,8 +10,6 @@ import { Info, Loader2 } from "lucide-react";
 import { dryrunResult, messageResult } from "@/lib/aoService";
 import { mainProcessId } from "@/lib/config";
 
-
-
 export const MintPage = () => {
     const { connected } = useConnection();
     const [amount, setAmount] = useState(0);

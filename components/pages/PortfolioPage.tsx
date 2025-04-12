@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { mainProcessId } from "@/lib/config";
-import { dryrunResult } from "@/lib/aoService";
+import { dryrunResult, messageResult } from "@/lib/aoService";
 import { Loader2, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -26,16 +26,21 @@ type Investment = {
     Amount: number;
     Date: string;
     RecurringDay: number;
+    Active?: boolean;
 }
 
 const InvestmentPlansDialog = ({ 
     open, 
     onOpenChange, 
-    investments 
+    investments,
+    onCancelInvestment,
+    cancelLoading
 }: { 
     open: boolean; 
     onOpenChange: (open: boolean) => void; 
     investments: Investment[];
+    onCancelInvestment: (id: number) => Promise<void>;
+    cancelLoading: number | null;
 }) => {
     const getNextInvestmentDate = (recurringDay: number) => {
         const today = new Date();
@@ -62,28 +67,59 @@ const InvestmentPlansDialog = ({
                 <div className="space-y-4">
                     {investments.map((investment, index) => {
                         const nextDate = getNextInvestmentDate(investment.RecurringDay);
+                        // Convert to number for consistent comparison
+                        const activeValue = investment.Active === true ? 1 : Number(investment.Active || 0);
+                        const isCancelled = activeValue !== 1;
+                        
                         return (
-                            <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div key={index} className={`flex items-center justify-between p-4 border rounded-lg ${isCancelled ? 'bg-gray-100' : ''}`}>
                                 <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                        <div className={`w-8 h-8 rounded-full ${isCancelled ? 'bg-gray-400' : 'bg-blue-500'} flex items-center justify-center`}>
                                             <span className="text-white font-bold">$</span>
                                         </div>
                                         <div>
-                                            <div className="font-medium">
+                                            <div className="font-medium flex items-center gap-2">
                                                 {getTokenSymbol(investment.InputTokenAddress)} → {getTokenSymbol(investment.OutputTokenAddress)}
+                                                {isCancelled && (
+                                                    <span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full">
+                                                        Cancelled
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="text-sm text-gray-500">
                                                 {Number(investment.Amount || 0).toFixed(2)} tokens
                                             </div>
+                                            <div className="text-xs text-gray-400">
+                                                ID: {investment.ID}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <div className="font-medium">Next Investment</div>
-                                    <div className="text-sm text-gray-500">
-                                        {nextDate.toLocaleDateString()}
+                                <div className="flex flex-col items-end gap-2">
+                                    <div className="text-right">
+                                        <div className="font-medium">Next Investment</div>
+                                        <div className="text-sm text-gray-500">
+                                            {isCancelled ? 'N/A' : nextDate.toLocaleDateString()}
+                                        </div>
                                     </div>
+                                    {!isCancelled && (
+                                        <Button 
+                                            variant="destructive" 
+                                            size="sm"
+                                            onClick={() => onCancelInvestment(investment.ID)}
+                                            disabled={cancelLoading === investment.ID}
+                                        >
+                                            {cancelLoading === investment.ID ? (
+                                                <>
+                                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                    Cancelling...
+                                                </>
+                                            ) : (
+                                                'Cancel'
+                                            )}
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -104,50 +140,92 @@ export const PortfolioPage = () => {
     const [investments, setInvestments] = useState<Investment[]>([]);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [nextInvestmentDate, setNextInvestmentDate] = useState<Date | null>(null);
+    const [cancelLoading, setCancelLoading] = useState<number | null>(null);
 
+    const fetchData = async () => {
+        setLoading(true);
+        if(!connected || !address) {
+            toast("dum dum requires your wallet to continue");
+            return;
+        }
+        // Fetch investment data from database
+        const investmentData: Investment[] = await dryrunResult(mainProcessId, [
+            { name: "Action", value: "getInvestmentPlans" },
+            { name: "Wallet_Address", value: address },
+        ]);
+
+        console.log(investmentData);
+
+        setInvestments(investmentData);
+        setTotalInvested(investmentData.reduce((acc: number, curr: Investment) => acc + Number(curr.Amount || 0), 0).toFixed(2));
+        setTotalReturns(investmentData.reduce((acc: number, curr: Investment) => acc + (Number(curr.Amount || 0) - (Number(curr.Amount || 0) * 0.90)), 0).toFixed(2));
+        // Count only active investments
+        const activeCount = investmentData.filter(inv => {
+            const activeValue = inv.Active === true ? 1 : Number(inv.Active || 0);
+            return activeValue === 1;
+        }).length;
+        setActiveInvestments(activeCount);
+
+        // Calculate next investment date
+        if (investmentData.length > 0) {
+            const today = new Date();
+            const nextDates = investmentData.map(inv => {
+                const nextDate = new Date(today.getFullYear(), today.getMonth(), inv.RecurringDay);
+                if (nextDate < today) {
+                    nextDate.setMonth(nextDate.getMonth() + 1);
+                }
+                return nextDate;
+            });
+            const closestDate = nextDates.reduce((a, b) => a < b ? a : b);
+            setNextInvestmentDate(closestDate);
+        }
+
+        console.log(investmentData);
+        setLoading(false);
+    };
+    
     useEffect(() => {
         console.log("Connected", connected + ": " + address);
-        const fetchData = async () => {
-            setLoading(true);
-            if (!connected || !address) {
-                toast("dum dum requires your wallet to continue");
-                setLoading(false);
-                return;
-            } else {
-                toast("dum dum says your wallet is connected!");
-            }
-            
-            // Fetch investment data from database
-            const investmentData: Investment[] = await dryrunResult(mainProcessId, [
-                { name: "Action", value: "getInvestmentPlans" },
-                { name: "Wallet_Address", value: address },
-            ]);
-
-            setInvestments(investmentData);
-            setTotalInvested(investmentData.reduce((acc: number, curr: Investment) => acc + Number(curr.Amount || 0), 0).toFixed(2));
-            setTotalReturns(investmentData.reduce((acc: number, curr: Investment) => acc + (Number(curr.Amount || 0) - (Number(curr.Amount || 0) * 0.90)), 0).toFixed(2));
-            setActiveInvestments(investmentData.length);
-
-            // Calculate next investment date
-            if (investmentData.length > 0) {
-                const today = new Date();
-                const nextDates = investmentData.map(inv => {
-                    const nextDate = new Date(today.getFullYear(), today.getMonth(), inv.RecurringDay);
-                    if (nextDate < today) {
-                        nextDate.setMonth(nextDate.getMonth() + 1);
-                    }
-                    return nextDate;
-                });
-                const closestDate = nextDates.reduce((a, b) => a < b ? a : b);
-                setNextInvestmentDate(closestDate);
-            }
-
-            console.log(investmentData);
-            setLoading(false);
-        };
+        if (!connected || !address) {
+            toast("dum dum requires your wallet to continue");
+            return;
+        } else {
+            toast("dum dum says your wallet is connected!");
+        }
 
         fetchData();
     }, [connected, address]);
+
+    const handleCancelInvestment = async (id: number) => {
+        try {
+            setCancelLoading(id);
+            // Call the CancelInvestment handler
+
+            console.log("Cancelling investment", id);
+            const result = await messageResult(mainProcessId, [
+                { name: "Action", value: "CancelInvestment" },
+                { name: "InvestmentID", value: id.toString() },
+            ]);
+
+            console.log(result);
+            
+            // Update local state immediately to show cancelled
+            setInvestments(prevInvestments => 
+                prevInvestments.map(inv => 
+                    inv.ID === id ? { ...inv, Active: false } : inv
+                )
+            );
+            
+            toast.success("Investment plan cancelled successfully!");
+            // Refresh data after cancellation to ensure consistency
+            await fetchData();
+        } catch (error) {
+            console.error("Error cancelling investment:", error);
+            toast.error("Failed to cancel investment plan");
+        } finally {
+            setCancelLoading(null);
+        }
+    };
 
     const LoadingSpinner = () => (
         <div className="flex items-center justify-center">
@@ -276,6 +354,8 @@ export const PortfolioPage = () => {
                 open={dialogOpen} 
                 onOpenChange={setDialogOpen} 
                 investments={investments}
+                onCancelInvestment={handleCancelInvestment}
+                cancelLoading={cancelLoading}
             />
         </div>
     );

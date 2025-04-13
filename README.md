@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# InvestAr - Autonomous Investment Agent
+
+InvestAr is a decentralized investment platform built on the Arweave network, enabling automated and transparent investment strategies. The platform leverages Arweave's permanent and decentralized storage capabilities to provide users with autonomous investment solutions while maintaining full control over their assets.
+
+![InvestAr Website](public/website.png)
+
+## Features
+
+- **Automated Investment Strategies**: Currently implements dollar cost averaging (DCA) for STAR tokens
+- **Decentralized Control**: Built on Arweave network ensuring transparency and user control
+- **User-Friendly Interface**: Modern UI with intuitive portfolio management
+- **Token Management**: Mint and manage STAR tokens for testing investment strategies
+- **Real-Time Portfolio Tracking**: Monitor your investments and returns
+- **Recurring Investments**: Set up automated investments on specific days of the month
+
+## Tech Stack
+
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Blockchain**: Arweave Network, AO Protocol
+- **Smart Contracts**: Lua
+- **Wallet Integration**: Arweave Wallet Kit
+- **UI Components**: Radix UI, Framer Motion
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js (v18 or higher)
+- Arweave Wallet
+- Git
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/dharminnagar/autonomous-investment-agent.git
+cd autonomous-investment-agent
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Run the development server:
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## Learn More
+### Environment Setup
 
-To learn more about Next.js, take a look at the following resources:
+No additional environment variables are required for basic setup. The application uses default Arweave testnet configurations.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Usage
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Connect Wallet**: Use the connect button in the header to link your Arweave wallet
+2. **Mint Tokens**: Navigate to the Mint page to get test STAR tokens
+3. **Create Investment**: Set up your investment strategy with:
+   - Input/Output tokens
+   - Investment amount
+   - Recurring day of the month
+4. **Monitor Portfolio**: Track your investments and returns in the Portfolio section
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+autonomous-investment-agent/
+├── app/                    # Next.js app directory
+├── components/            # React components
+├── lib/                   # Utility functions and configurations
+├── lua/                   # Smart contract code
+├── public/               # Static assets
+└── styles/               # Global styles
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## Team
+
+- **Dharmin Nagar** - [GitHub](https://github.com/dharminnagar) | [Twitter](https://twitter.com/dharminnagar)
+- **Yatharth Singh Panwar** - [GitHub](https://github.com/yatharth-singh-panwar) | [Twitter](https://twitter.com/yatharthpnwr)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Arweave Network
+- AO Protocol
+- The entire Web3 community

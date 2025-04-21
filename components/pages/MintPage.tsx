@@ -10,12 +10,14 @@ import { Info, Loader2 } from "lucide-react";
 import { dryrunResult, messageResult } from "@/lib/aoService";
 import { mainProcessId } from "@/lib/config";
 
+
+
 export const MintPage = () => {
     const { connected } = useConnection();
     const [amount, setAmount] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [userPid, setUserPid] = useState<string | undefined>(undefined);
-
+    
     const address = useActiveAddress();
 
     useEffect(() => {
@@ -32,19 +34,19 @@ export const MintPage = () => {
 
     async function handleMint() {
         if (!connected) {
-            toast.error("dum dum requires your wallet to continue");
+            toast.error("Please connect your wallet first");
             return;
         }
 
         if (amount > 100) {
-            toast.error("dum dum says you can only mint up to 100 tokens at a time.");
+            toast.error("You can only mint up to 100 tokens at a time.");
             return;
         }
         if (!userPid) {
             toast.error("User process ID not found. Please try again.");
             return;
         }
-
+    
         try {
             setIsLoading(true);
             console.log("Reached here");
@@ -52,14 +54,14 @@ export const MintPage = () => {
             const res = await messageResult("yoNtlglzbxbwmRGECmSLX4q-lpEpUpbhSLkX8qlKXmo", [
                 { name: "Action", value: "RequestTokens" },
                 { name: "Quantity", value: amount.toString() },
-                { name: "Recipient", value: userPid },
+                { name: "Recipient", value: userPid }
             ]);
-
+            
             console.log(res); // Log the entire response object to see its structure
-
+            
             // Extract the success message from the response
             if (res && res.Messages && res.Messages[0]) {
-                const message = res.Messages[0].Tags.Data || "Tokens minted successfully";
+                const message = res.Messages[1].Data || "Tokens minted successfully";
                 toast.success(message);
             } else {
                 toast.success("Tokens minted successfully");
@@ -119,16 +121,9 @@ export const MintPage = () => {
                             )}
                         </Button>
 
-                        <div className="text-sm text-gray-500 flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
-                                <Info className="w-4 h-4" />
-                                <div>dum dum will send you the STAR1 tokens</div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <Info className="w-4 h-4" />
-                                <div>NOTE: This is for testing purposes only.</div>
-                            </div>
+                        <div className="text-sm text-gray-500 flex items-center gap-2">
+                            <Info className="w-4 h-4" />
+                            <div>NOTE: This is for testing purposes only.</div>
                         </div>
                     </div>
                 </CardContent>

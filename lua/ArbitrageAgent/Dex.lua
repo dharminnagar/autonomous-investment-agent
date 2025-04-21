@@ -116,7 +116,7 @@ Handlers.add('Swap', 'Swap', function(msg)
   Send({
     Target = inputToken,
     Action = "Transfer",
-    Recipient = ao.id, -- The DEX contract's ID
+    Recipient = ao.id, 
     Quantity = inputAmount,
     From = msg.From
   })
@@ -137,8 +137,7 @@ Handlers.add('Swap', 'Swap', function(msg)
   else
     pool.quoteReserve = utils.add(pool.quoteReserve, inputAmount)
     pool.baseReserve = utils.subtract(pool.baseReserve, outputAmount)
-  end
-  
+  end 
   -- Save updated pool
   Pools[baseToken .. "-" .. quoteToken] = pool
   
@@ -157,8 +156,17 @@ Handlers.add('Swap', 'Swap', function(msg)
   })
 end)
 
+Handlers.add("Hello", "Hello", function(msg)
+  print("Helllo world")
+    msg.reply({
+        Action="Hello",
+        Data="Hello world"
+    })
+end)
+
 -- Add liquidity handler
 Handlers.add('AddLiquidity', 'AddLiquidity', function(msg)
+  print("AddLiquidity")
   -- Validate input parameters
   assert(type(msg.BaseToken) == 'string', 'BaseToken is required!')
   assert(type(msg.QuoteToken) == 'string', 'QuoteToken is required!')
@@ -174,45 +182,12 @@ Handlers.add('AddLiquidity', 'AddLiquidity', function(msg)
   
   -- Get or create the pool
   local poolKey = baseToken .. "-" .. quoteToken
+
+  --@TODO: Check the validity of the getorCreatePool Function
   local pool = getOrCreatePool(baseToken, quoteToken)
+  -- print("Pool: ".. pool)
   
-  -- Calculate LP tokens to mint
-  local lpTokensToMint = "0"
-  if utils.equals(pool.lpTokenSupply, "0") then
-    -- First liquidity provision - use geometric mean
-    lpTokensToMint = utils.multiply(
-      utils.divide(
-        utils.multiply(baseAmount, quoteAmount), 
-        "1000000000000"
-      ), 
-      "1000000"
-    ) -- Scale down for precision
-  else
-    -- Subsequent liquidity - proportional to existing reserves
-    local baseRatio = utils.divide(
-      utils.multiply(baseAmount, "1000000000000"), 
-      pool.baseReserve
-    )
-    local quoteRatio = utils.divide(
-      utils.multiply(quoteAmount, "1000000000000"), 
-      pool.quoteReserve
-    )
-    
-    -- Use the smaller ratio to maintain price
-    if utils.lessThan(baseRatio, quoteRatio) then
-      lpTokensToMint = utils.divide(
-        utils.multiply(pool.lpTokenSupply, baseRatio),
-        "1000000000000"
-      )
-    else
-      lpTokensToMint = utils.divide(
-        utils.multiply(pool.lpTokenSupply, quoteRatio),
-        "1000000000000"
-      )
-    end
-  end
-  
-  -- Transfer tokens from user to this contract
+  -- Transfer tokens from user to this contract (no LP tokens minted)
   Send({
     Target = baseToken,
     Action = "Transfer",
@@ -229,36 +204,26 @@ Handlers.add('AddLiquidity', 'AddLiquidity', function(msg)
     From = msg.From
   })
   
-  -- Update LP token balance for the user
-  if not pool.lpHolders[msg.From] then
-    pool.lpHolders[msg.From] = "0"
-  end
-  pool.lpHolders[msg.From] = utils.add(pool.lpHolders[msg.From], lpTokensToMint)
-  
-  -- Update pool reserves and LP token supply
+  -- Update pool reserves 
   pool.baseReserve = utils.add(pool.baseReserve, baseAmount)
   pool.quoteReserve = utils.add(pool.quoteReserve, quoteAmount)
-  pool.lpTokenSupply = utils.add(pool.lpTokenSupply, lpTokensToMint)
   
   -- Save updated pool
   Pools[poolKey] = pool
   
-  -- AddLiquidity successful
+  -- Reply with success (no LP token data)
   msg.reply({
     Action = 'AddLiquidity-Complete',
     BaseToken = baseToken,
     QuoteToken = quoteToken,
     BaseAmount = baseAmount,
     QuoteAmount = quoteAmount,
-    LPTokensMinted = lpTokensToMint,
     NewBaseReserve = pool.baseReserve,
     NewQuoteReserve = pool.quoteReserve,
     Data = "Successfully added liquidity with " .. baseAmount .. " of token " .. 
-           baseToken .. " and " .. quoteAmount .. " of token " .. 
-           quoteToken .. ". LP tokens minted: " .. lpTokensToMint
+           baseToken .. " and " .. quoteAmount .. " of token " .. quoteToken
   })
 end)
-
 -- Remove liquidity handler
 Handlers.add('RemoveLiquidity', 'RemoveLiquidity', function(msg)
   -- Validate input parameters
@@ -424,6 +389,7 @@ end)
 -- GetPoolList handler - returns all available pools
 Handlers.add('GetPoolList', 'GetPoolList', function(msg)
   local poolList = {}
+  print('Reached here')
   
   for poolKey, pool in pairs(Pools) do
     table.insert(poolList, {
@@ -434,15 +400,21 @@ Handlers.add('GetPoolList', 'GetPoolList', function(msg)
       QuoteReserve = pool.quoteReserve
     })
   end
-  
-  -- GetPoolList successful
+  for _, pool in ipairs(poolList) do
+    print("PoolKey: " .. pool.PoolKey)
+    print("BaseToken: " .. pool.BaseToken)
+    print("QuoteToken: " .. pool.QuoteToken)
+    print("BaseReserve: " .. pool.BaseReserve)
+    print("QuoteReserve: " .. pool.QuoteReserve)
+    print("-----")
+  end
+
   msg.reply({
     Action = 'GetPoolList-Complete',
-    Pools = poolList,
-    Count = #poolList,
     Data = json.encode(poolList)
   })
 end)
+
 
 -- PreviewSwap handler - calculates the output amount without executing the swap
 Handlers.add('PreviewSwap', 'PreviewSwap', function(msg)

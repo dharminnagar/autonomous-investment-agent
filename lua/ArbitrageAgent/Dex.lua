@@ -137,7 +137,7 @@ Handlers.add('Swap', 'Swap', function(msg)
   else
     pool.quoteReserve = utils.add(pool.quoteReserve, inputAmount)
     pool.baseReserve = utils.subtract(pool.baseReserve, outputAmount)
-  }
+  end
   
   -- Save updated pool
   Pools[baseToken .. "-" .. quoteToken] = pool

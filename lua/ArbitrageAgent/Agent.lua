@@ -220,7 +220,7 @@ Handlers.add("GetExtremes", "GetExtremes",function(msg)
       highestDexId = dexId
     end
     
-    if utils.lessThan(price, highestPrice) then
+    if utils.lessThan(price, lowestPrice) then
       lowestPrice = price
       lowestDexId = dexId
     end
@@ -302,31 +302,6 @@ local function scanForArbitrage()
   }).Data
 
   print("Prices received from DEXes: " )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   -- Check if the arbitrage opportunity is profitable (PROFIT SHOULD BE  MORE THAN THE NETWORK FEES)
   -- local amountGained = utils.calculateProfit(lowestPrice, highestPrice)

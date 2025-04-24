@@ -37,10 +37,10 @@ local utils = {
     return tostring(bint(a) / bint(b))
   end,
   lessThan = function(a, b)
-    return bint(a) < bint(b)
+    return a < b
   end,
   greaterThan = function(a, b)
-    return bint(a) > bint(b)
+    return a > b
   end,
   equals = function(a, b)
     return bint(a) == bint(b)
@@ -98,11 +98,15 @@ Handlers.add('Setup', 'Setup', function(msg)
   
   Send({
     Target = "naoSsbeWp2qO-CYUfKwEZJpxleRSoNye6DJXRCoXw8U",
+    TokenId = msg.InputToken,
     Action = "TransferFunds",
     Recipient = ao.id,
     Quantity = msg.InputTokenAmount,
     OriginalSender = msg.OriginalSender
   })
+  local amount = Receive({
+    Action = "Transfer_Executed"
+  }).Data
 
   msg.reply({
     Action = 'Setup-Complete',
@@ -197,56 +201,26 @@ local function executeSwap(dexProcessId, baseToken, quoteToken, inputToken, inpu
   return nil
 end
 
--- Core function to scan for arbitrage opportunities
-local function scanForArbitrage()
-  if not ArbitrageConfig.enabled then return end
-  
-  -- Get balance of input token
-  --@NOTE THIS WILL NOT WORK (FROM) Where are we storing the balance?
-  Send({
-    Target = ArbitrageConfig.inputToken,
-    Action = "Balance",
-    Recipient = ao.id,
-  })
 
-  local BalanceOfThisProcess = Receive({
-    Action = "recievedBalance"
-  }).Data
+Handlers.add("GetExtremes", "GetExtremes",function(msg)
+  print('reached here')
 
-  print("The balance is :" .. BalanceOfThisProcess);
-
-  
-  -- Get prices from all configured DEXes
-  local prices = {}
-  for _, dexId in ipairs(ArbitrageConfig.dexProcesses) do
-      -- Then, get the price
-      Send({
-          Target = dexId,
-          Action = "GetPrice",
-          BaseToken = ArbitrageConfig.inputToken,
-          QuoteToken = ArbitrageConfig.targetToken,
-      })
-      local price = Receive({
-          Action = "GetPrice-Complete"
-      }).Price
-      
-      -- Store the price in the prices table with dexId as the key
-      prices[dexId] = price
-  end
-
+  local prices = msg.Data
   -- Find highest and lowest prices
-  local highestPrice = -math.huge
-  local lowestPrice = math.huge
-  local highestDexId = nil
-  local lowestDexId = nil
+  local highestPrice = "0"
+  local lowestPrice = "0"
+  local highestDexId = ""
+  local lowestDexId = ""
   
   for dexId, price in pairs(prices) do
-    if price > highestPrice then
+    print("Price from DEX " .. dexId .. ": " .. price)
+    
+    if utils.greaterThan(price, highestPrice) then
       highestPrice = price
       highestDexId = dexId
     end
     
-    if price < lowestPrice then
+    if utils.lessThan(price, highestPrice) then
       lowestPrice = price
       lowestDexId = dexId
     end
@@ -267,56 +241,143 @@ local function scanForArbitrage()
       price = highestPrice
     }
   }
-  -- Check if the arbitrage opportunity is profitable (PROFIT SHOULD BE  MORE THAN THE NETWORK FEES)
-  local amountGained = utils.calculateProfit(lowestPrice, highestPrice)
-  if(bint(amountGained) > 0.5) then
-    --NOTIFY ABOUT THE ARBITRAGE OPPORTUNITY
+  print(performArbitrageOn);
+end)
+
+Handlers.add("getPrices", "getPrices", function(msg)
+  -- This is to handle notifications from DEX processes or other sources
+  -- about potential arbitrage opportunities
+  local prices = {}
+  for _, dexId in ipairs(ArbitrageConfig.dexProcesses ) do
+    -- Then, get the price
     Send({
-      Target = msg.From,
-      Action = "ArbitrageOpportunityFound",
-      Data = "A new profitable arbitrage opportunity found! " ..
-             "Buy at DEX: " .. lowestDexId .. " at price: " .. lowestPrice .. 
-             ", Sell at DEX: " .. highestDexId .. " at price: " .. highestPrice,
+        Target = dexId,
+        Action = "GetPrice",
+        BaseToken = ArbitrageConfig.inputToken,
+        QuoteToken = ArbitrageConfig.targetToken,
     })
-    -- Execute the arbitrage
-    executeSwap(
-      lowestDexId,
-      ArbitrageConfig.inputToken,
-      ArbitrageConfig.targetToken,
-      ArbitrageConfig.inputToken,
-      amountGained,
-      lowestPrice
-    )
+    local price = Receive({
+        Action = "GetPrice-Complete"
+    }).Price
+    print("Price from DEX " .. dexId .. ": " .. price)
+    -- Store the price in the prices table with dexId as the key
+    prices[dexId] = price
     
-    executeSwap(
-      highestDexId,
-      ArbitrageConfig.inputToken,
-      ArbitrageConfig.targetToken,
-      ArbitrageConfig.targetToken,
-      amountGained,
-      highestPrice
-    )
+  end
+  
+  Send({
+    Target = ao.id,
+    Action = 'GetExtremes',
+    Data = prices
+  })
+  
+  -- Potentially analyze and execute arbitrage based on notification
+end)
+
+-- Core function to scan for arbitrage opportunities
+local function scanForArbitrage()
+  if not ArbitrageConfig.enabled then return end
+  
+  -- Get balance of input token
+  --@NOTE THIS WILL NOT WORK (FROM) Where are we storing the balance?
+  Send({
+    Target = ArbitrageConfig.inputToken,
+    Action = "Balance",
+    Recipient = ao.id,
+  })
+  local BalanceOfThisProcess = Receive({
+    Action = "recievedBalance"
+  }).Data
+  
+  print("The balance is :" .. BalanceOfThisProcess);
+
+  -- Get prices from all configured DEXes
+  Send({
+    Target = ao.id,
+    Action = "getPrices"
+  })
+
+  local prices = Receive({
+    Action = "getPrices-Received"
+  }).Data
+
+  print("Prices received from DEXes: " )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  -- Check if the arbitrage opportunity is profitable (PROFIT SHOULD BE  MORE THAN THE NETWORK FEES)
+  -- local amountGained = utils.calculateProfit(lowestPrice, highestPrice)
+  -- if(bint(amountGained) > 0.5) then
+  --   --NOTIFY ABOUT THE ARBITRAGE OPPORTUNITY
+  --   Send({
+  --     Target = msg.From,
+  --     Action = "ArbitrageOpportunityFound",
+  --     Data = "A new profitable arbitrage opportunity found! " ..
+  --            "Buy at DEX: " .. lowestDexId .. " at price: " .. lowestPrice .. 
+  --            ", Sell at DEX: " .. highestDexId .. " at price: " .. highestPrice,
+  --   })
+  --   -- Execute the arbitrage
+  --   executeSwap(
+  --     lowestDexId,
+  --     ArbitrageConfig.inputToken,
+  --     ArbitrageConfig.targetToken,
+  --     ArbitrageConfig.inputToken,
+  --     amountGained,
+  --     lowestPrice
+  --   )
+    
+  --   executeSwap(
+  --     highestDexId,
+  --     ArbitrageConfig.inputToken,
+  --     ArbitrageConfig.targetToken,
+  --     ArbitrageConfig.targetToken,
+  --     amountGained,
+  --     highestPrice
+  --   )
     
     -- -- Update the balance
     -- ArbitrageState.balance = utils.subtract(ArbitrageState.balance, amountGained)
     
     -- Notify about the arbitrage execution
-    Send({
-      Target = msg.From,
-      Action = "ArbitrageExecuted",
-      BuyDex = lowestDexId,
-      SellDex = highestDexId,
-      InputAmount = amountGained,
-      Data = "Executed arbitrage successfully"
-    })
-  else
-    -- Notify about no arbitrage opportunity
-    Send({
-      Target = msg.From,
-      Action = "NoArbitrageOpportunity",
-      Data = "No profitable arbitrage opportunity found"
-    })
-  end
+  --   Send({
+  --     Target = msg.From,
+  --     Action = "ArbitrageExecuted",
+  --     BuyDex = lowestDexId,
+  --     SellDex = highestDexId,
+  --     InputAmount = amountGained,
+  --     Data = "Executed arbitrage successfully"
+  --   })
+  -- else
+  --   -- Notify about no arbitrage opportunity
+  --   Send({
+  --     Target = msg.From,
+  --     Action = "NoArbitrageOpportunity",
+  --     Data = "No profitable arbitrage opportunity found"
+  --   })
+  -- end
 end
 
 -- Cron handler for automatic scanning
@@ -324,7 +385,7 @@ Handlers.add("CronTick",
   Handlers.utils.hasMatchingTag("Action", "Cron"),
   function(msg)
     if not ArbitrageConfig.enabled then return end
-    
+    print("Starting automatic scan for arbitrage opportunities...")
     -- Scan for arbitrage opportunities
     scanForArbitrage()
   end

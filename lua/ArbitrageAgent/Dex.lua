@@ -70,7 +70,9 @@ local function getPrice(baseReserve, quoteReserve)
 end
 
 -- HANDLERS
-
+Handlers.add("Balance", "Balance", function(msg)
+  ArbitrageConfig.balance  = msg.Balance
+end)
 -- Swap tokens handler
 Handlers.add('Swap', 'Swap', function(msg)
   -- Validate input parameters
@@ -330,6 +332,8 @@ end)
 
 -- GetPool handler - returns pool information
 Handlers.add('GetPool', 'GetPool', function(msg)
+
+  print("Reached here")
   -- Validate input parameters
   assert(type(msg.BaseToken) == 'string', 'BaseToken is required!')
   assert(type(msg.QuoteToken) == 'string', 'QuoteToken is required!')
@@ -341,6 +345,8 @@ Handlers.add('GetPool', 'GetPool', function(msg)
   local poolKey = baseToken .. "-" .. quoteToken
   local pool = getOrCreatePool(baseToken, quoteToken)
   
+  -- print("Pool: ".. pool)
+
   -- GetPool successful
   local poolInfo = {
     BaseToken = pool.baseToken,
@@ -350,10 +356,10 @@ Handlers.add('GetPool', 'GetPool', function(msg)
     LPTokenSupply = pool.lpTokenSupply,
     Fee = pool.fee
   }
+  print(poolInfo)
   
   msg.reply({
     Action = 'GetPool-Complete',
-    Pool = poolInfo,
     Data = json.encode(poolInfo)
   })
 end)

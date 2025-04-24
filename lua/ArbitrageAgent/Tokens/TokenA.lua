@@ -45,10 +45,7 @@ Handlers.add('info', "Info", function(msg)
   })
 end)
 
---[[
-     Balance
-   ]]
---
+
 Handlers.add('balance', "Balance", function(msg)
   local bal = '0'
 
@@ -64,6 +61,7 @@ Handlers.add('balance', "Balance", function(msg)
   end
 
   msg.reply({
+    Action = "recievedBalance"
     Balance = bal,
     Ticker = Ticker,
     Account = msg.Tags.Recipient or msg.From,

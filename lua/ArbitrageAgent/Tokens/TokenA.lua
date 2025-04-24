@@ -61,7 +61,7 @@ Handlers.add('balance', "Balance", function(msg)
   end
 
   msg.reply({
-    Action = "recievedBalance"
+    Action = "recievedBalance",
     Balance = bal,
     Ticker = Ticker,
     Account = msg.Tags.Recipient or msg.From,

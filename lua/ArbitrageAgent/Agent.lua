@@ -79,12 +79,10 @@ end
 -- Setup handler - Configure the arbitrage agent
 Handlers.add('Setup', 'Setup', function(msg)
   assert(type(msg.InputToken) == 'string', 'InputToken is required!')
-  assert(type(msg.TargetToken) == 'string', 'TargetToken is required!')
   assert(type(msg.OriginalSender) == 'string', 'original sender is required!')
   assert(type(msg.InputTokenAmount) == 'string', 'Input token amount is required!')
   
   ArbitrageConfig.inputToken = msg.InputToken
-  ArbitrageConfig.targetToken = msg.TargetToken
   
   if msg.Slippage and type(msg.Slippage) == 'string' then
     ArbitrageConfig.slippage = msg.Slippage
@@ -107,7 +105,6 @@ Handlers.add('Setup', 'Setup', function(msg)
   msg.reply({
     Action = 'Setup-Complete',
     InputToken = ArbitrageConfig.inputToken,
-    TargetToken = ArbitrageConfig.targetToken,
     Slippage = ArbitrageConfig.slippage,
     MinProfitThreshold = ArbitrageConfig.minProfitThreshold,
     Data = "Arbitrage agent configured successfully"

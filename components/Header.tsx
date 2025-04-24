@@ -25,6 +25,12 @@ export const Header = () => {
                         Invest
                     </Link>
                     <Link
+                        href="/arbitrage"
+                        className="text-lg hover:underline hover:underline-offset-4 hover:decoration-2"
+                    >
+                        Arbitrage
+                    </Link>
+                    <Link
                         href="/mint"
                         className="text-lg hover:underline hover:underline-offset-4 hover:decoration-2"
                     >

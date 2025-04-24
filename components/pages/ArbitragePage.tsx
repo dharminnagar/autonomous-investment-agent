@@ -21,7 +21,8 @@ export const ArbitragePage = () => {
     const { connected } = useConnection();
     const address = useActiveAddress();
     const [maxAllowance, setMaxAllowance] = useState(0);
-    const [selectedToken, setSelectedToken] = useState(Tokens.STAR1.address);
+    const [selectedInputToken, setSelectedInputToken] = useState(Tokens.STAR1.address);
+    const [selectedTargetToken, setSelectedTargetToken] = useState(Tokens.STAR2.address);
     const [slippageTolerance, setSlippageTolerance] = useState("0.3");
     const [isLoading, setIsLoading] = useState(false);
     const [userPid, setUserPid] = useState<string | undefined>(undefined);
@@ -63,7 +64,8 @@ export const ArbitragePage = () => {
             const res = await messageResult(mainProcessId, [
                 { name: "Action", value: "StartArbitrage" },
                 { name: "Wallet_Address", value: address },
-                { name: "TokenAddress", value: selectedToken },
+                { name: "InputTokenAddress", value: selectedInputToken },
+                { name: "TargetTokenAddress", value: selectedTargetToken },
                 { name: "MaxAllowance", value: maxAllowance.toString() },
                 { name: "SlippageTolerance", value: slippageTolerance },
                 { name: "PERSON_PID", value: userPid! },
@@ -96,60 +98,118 @@ export const ArbitragePage = () => {
                     <Separator />
 
                     <div className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-500">
-                                Select Token
-                            </label>
-                            <Select value={selectedToken} onValueChange={setSelectedToken}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select Token">
-                                        {selectedToken && (
-                                            <div className="flex items-center gap-2">
-                                                <div
-                                                    className={`w-6 h-6 rounded-full ${
-                                                        selectedToken === Tokens.STAR1.address
-                                                            ? "bg-blue-500"
-                                                            : selectedToken === Tokens.STAR2.address
-                                                            ? "bg-purple-500"
-                                                            : "bg-gray-500"
-                                                    } flex items-center justify-center`}
-                                                >
-                                                    <span className="text-white font-bold text-sm">
-                                                        {selectedToken === Tokens.STAR1.address
-                                                            ? "$"
-                                                            : selectedToken === Tokens.STAR2.address
-                                                            ? "A"
-                                                            : "T"}
-                                                    </span>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-500">
+                                    Select Input Token
+                                </label>
+                                <Select value={selectedInputToken} onValueChange={setSelectedInputToken}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select Input Token">
+                                            {selectedInputToken && (
+                                                <div className="flex items-center gap-2">
+                                                    <div
+                                                        className={`w-6 h-6 rounded-full ${
+                                                            selectedInputToken === Tokens.STAR1.address
+                                                                ? "bg-blue-500"
+                                                                : selectedInputToken === Tokens.STAR2.address
+                                                                ? "bg-purple-500"
+                                                                : "bg-gray-500"
+                                                        } flex items-center justify-center`}
+                                                    >
+                                                        <span className="text-white font-bold text-sm">
+                                                            {selectedInputToken === Tokens.STAR1.address
+                                                                ? "$"
+                                                                : selectedInputToken === Tokens.STAR2.address
+                                                                ? "A"
+                                                                : "T"}
+                                                        </span>
+                                                    </div>
+                                                    {
+                                                        Object.values(Tokens).find(
+                                                            (token) => token.address === selectedInputToken
+                                                        )?.symbol
+                                                    }
                                                 </div>
-                                                {
-                                                    Object.values(Tokens).find(
-                                                        (token) => token.address === selectedToken
-                                                    )?.symbol
-                                                }
-                                            </div>
-                                        )}
-                                    </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {Object.values(Tokens).map((token) => (
-                                        <SelectItem key={token.address} value={token.address}>
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-6 h-6 rounded-full ${
-                                                    token.symbol === "STAR1" ? "bg-blue-500" :
-                                                    token.symbol === "STAR2" ? "bg-purple-500" : "bg-gray-500"
-                                                } flex items-center justify-center`}>
-                                                    <span className="text-white font-bold text-sm">
-                                                        {token.symbol === "STAR1" ? "$" :
-                                                        token.symbol === "STAR2" ? "A" : "T"}
-                                                    </span>
+                                            )}
+                                        </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.values(Tokens).map((token) => (
+                                            <SelectItem key={token.address} value={token.address}>
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-6 h-6 rounded-full ${
+                                                        token.symbol === "STAR1" ? "bg-blue-500" :
+                                                        token.symbol === "STAR2" ? "bg-purple-500" : "bg-gray-500"
+                                                    } flex items-center justify-center`}>
+                                                        <span className="text-white font-bold text-sm">
+                                                            {token.symbol === "STAR1" ? "$" :
+                                                            token.symbol === "STAR2" ? "A" : "T"}
+                                                        </span>
+                                                    </div>
+                                                    {token.symbol}
                                                 </div>
-                                                {token.symbol}
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-500">
+                                    Select Target Token
+                                </label>
+                                <Select value={selectedTargetToken} onValueChange={setSelectedTargetToken}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select Target Token">
+                                            {selectedTargetToken && (
+                                                <div className="flex items-center gap-2">
+                                                    <div
+                                                        className={`w-6 h-6 rounded-full ${
+                                                            selectedTargetToken === Tokens.STAR1.address
+                                                                ? "bg-blue-500"
+                                                                : selectedTargetToken === Tokens.STAR2.address
+                                                                ? "bg-purple-500"
+                                                                : "bg-gray-500"
+                                                        } flex items-center justify-center`}
+                                                    >
+                                                        <span className="text-white font-bold text-sm">
+                                                            {selectedTargetToken === Tokens.STAR1.address
+                                                                ? "$"
+                                                                : selectedTargetToken === Tokens.STAR2.address
+                                                                ? "A"
+                                                                : "T"}
+                                                        </span>
+                                                    </div>
+                                                    {
+                                                        Object.values(Tokens).find(
+                                                            (token) => token.address === selectedTargetToken
+                                                        )?.symbol
+                                                    }
+                                                </div>
+                                            )}
+                                        </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.values(Tokens).map((token) => (
+                                            <SelectItem key={token.address} value={token.address}>
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-6 h-6 rounded-full ${
+                                                        token.symbol === "STAR1" ? "bg-blue-500" :
+                                                        token.symbol === "STAR2" ? "bg-purple-500" : "bg-gray-500"
+                                                    } flex items-center justify-center`}>
+                                                        <span className="text-white font-bold text-sm">
+                                                            {token.symbol === "STAR1" ? "$" :
+                                                            token.symbol === "STAR2" ? "A" : "T"}
+                                                        </span>
+                                                    </div>
+                                                    {token.symbol}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -205,4 +265,4 @@ export const ArbitragePage = () => {
     );
 };
 
-export default ArbitragePage; 
+export default ArbitragePage;

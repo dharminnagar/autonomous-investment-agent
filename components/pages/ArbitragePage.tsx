@@ -13,9 +13,13 @@ import {
 import { useEffect, useState } from "react";
 import { useConnection, useActiveAddress } from "arweave-wallet-kit";
 import { toast } from "sonner";
-import { mainProcessId, Tokens } from "@/lib/config";
+import { Tokens } from "@/lib/config";
 import { dryrunResult, messageResult } from "@/lib/aoService";
 import { Loader2 } from "lucide-react";
+
+// The Arbitrage Agent Process ID
+// TODO: This should be moved to a config file
+const ARBITRAGE_AGENT_PID = "_jmonJXkCMYUL-Es7gRWJ7FfJtNW_8itCKRIQ89IXLs";
 
 export const ArbitragePage = () => {
     const { connected } = useConnection();
@@ -25,7 +29,8 @@ export const ArbitragePage = () => {
     const [selectedTargetToken, setSelectedTargetToken] = useState(Tokens.STAR2.address);
     const [slippageTolerance, setSlippageTolerance] = useState("0.3");
     const [isLoading, setIsLoading] = useState(false);
-    const [userPid, setUserPid] = useState<string | undefined>(undefined);
+    const [botRunning, setBotRunning] = useState(false);
+    const [stopLoading, setStopLoading] = useState(false);
 
     useEffect(() => {
         if (!connected) {
@@ -35,17 +40,30 @@ export const ArbitragePage = () => {
         }
     }, [connected]);
 
+    // TODO: Will have to add this Handler to the process
+    // Check if arbitrage bot is running on component mount
     useEffect(() => {
-        const fetchProcessId = async () => {
-            const res = await dryrunResult(mainProcessId, [
-                { name: "Action", value: "getUser" },
-                { name: "Wallet_Address", value: address! },
-            ]);
-            setUserPid(res[0].Process_ID);
+        const checkBotStatus = async () => {
+            if (!connected || !address) return;
+            
+            try {
+                const res = await dryrunResult(ARBITRAGE_AGENT_PID, [
+                    { name: "Action", value: "Status" },
+                ]);
+                
+                if (res && res.Enabled === true) {
+                    setBotRunning(true);
+                } else {
+                    setBotRunning(false);
+                }
+            } catch (error) {
+                console.error("Error checking bot status:", error);
+                setBotRunning(false);
+            }
         };
-
-        fetchProcessId();
-    }, [address]);
+        
+        checkBotStatus();
+    }, [connected, address]);
 
     async function handleStartArbitrage() {
         if (!connected || !address) {
@@ -58,29 +76,76 @@ export const ArbitragePage = () => {
             return;
         }
 
+        if (selectedInputToken === selectedTargetToken) {
+            toast.error("Input and target tokens must be different");
+            return;
+        }
+
         setIsLoading(true);
         try {
-            // Sample API call to start arbitrage process
-            const res = await messageResult(mainProcessId, [
-                { name: "Action", value: "StartArbitrage" },
-                { name: "Wallet_Address", value: address },
-                { name: "InputTokenAddress", value: selectedInputToken },
-                { name: "TargetTokenAddress", value: selectedTargetToken },
-                { name: "MaxAllowance", value: maxAllowance.toString() },
-                { name: "SlippageTolerance", value: slippageTolerance },
-                { name: "PERSON_PID", value: userPid! },
+            // Step 1: Setup the arbitrage agent with user inputs
+            const setupRes = await messageResult(ARBITRAGE_AGENT_PID, [
+                { name: "Action", value: "Setup" },
+                { name: "InputToken", value: selectedInputToken },
+                { name: "TargetToken", value: selectedTargetToken },
+                { name: "Slippage", value: slippageTolerance },
+                { name: "InputTokenAmount", value: maxAllowance.toString() },
+                { name: "OriginalSender", value: address }
             ]);
 
-            if (res.Messages?.[0]?.Tags?.Result === "success") {
-                toast.success("Arbitrage bot started successfully!");
-            } else {
-                toast.error("Failed to start arbitrage bot");
+            if (setupRes.Error) {
+                throw new Error("Setup failed: " + setupRes.Error);
             }
+            
+            toast.success("Arbitrage bot setup complete!");
+            
+            // Step 2: Add DEX processes (assuming they're already configured in the agent)
+            // This step would be here if DEXes needed to be manually added
+            
+            // Step 3: Start the arbitrage bot
+            const startRes = await messageResult(ARBITRAGE_AGENT_PID, [
+                { name: "Action", value: "Start" },
+            ]);
+
+            if (startRes.Error) {
+                throw new Error("Failed to start bot: " + startRes.Error);
+            }
+            
+            toast.success("Arbitrage bot started successfully!");
+            setBotRunning(true);
+            
         } catch (error) {
             console.error(error);
-            toast.error("An error occurred while starting the arbitrage bot");
+            toast.error(error instanceof Error ? error.message : "An error occurred while starting the arbitrage bot");
         } finally {
             setIsLoading(false);
+        }
+    }
+
+    async function handleStopArbitrage() {
+        if (!connected || !address) {
+            toast.error("Please connect your wallet first");
+            return;
+        }
+
+        setStopLoading(true);
+        try {
+            const res = await messageResult(ARBITRAGE_AGENT_PID, [
+                { name: "Action", value: "Stop" },
+            ]);
+
+            if (res.Error) {
+                throw new Error("Failed to stop bot: " + res.Error);
+            }
+            
+            toast.success("Arbitrage bot stopped successfully");
+            setBotRunning(false);
+            
+        } catch (error) {
+            console.error(error);
+            toast.error(error instanceof Error ? error.message : "An error occurred while stopping the arbitrage bot");
+        } finally {
+            setStopLoading(false);
         }
     }
 
@@ -103,7 +168,11 @@ export const ArbitragePage = () => {
                                 <label className="text-sm font-medium text-gray-500">
                                     Select Input Token
                                 </label>
-                                <Select value={selectedInputToken} onValueChange={setSelectedInputToken}>
+                                <Select 
+                                    value={selectedInputToken} 
+                                    onValueChange={setSelectedInputToken}
+                                    disabled={botRunning}
+                                >
                                     <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Select Input Token">
                                             {selectedInputToken && (
@@ -159,7 +228,11 @@ export const ArbitragePage = () => {
                                 <label className="text-sm font-medium text-gray-500">
                                     Select Target Token
                                 </label>
-                                <Select value={selectedTargetToken} onValueChange={setSelectedTargetToken}>
+                                <Select 
+                                    value={selectedTargetToken} 
+                                    onValueChange={setSelectedTargetToken}
+                                    disabled={botRunning}
+                                >
                                     <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Select Target Token">
                                             {selectedTargetToken && (
@@ -222,6 +295,7 @@ export const ArbitragePage = () => {
                                 className="w-full text-lg h-12 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 value={maxAllowance || ""}
                                 onChange={(e) => setMaxAllowance(parseFloat(e.target.value) || 0)}
+                                disabled={botRunning}
                             />
                         </div>
 
@@ -229,7 +303,11 @@ export const ArbitragePage = () => {
                             <label className="text-sm font-medium text-gray-500">
                                 Slippage Tolerance
                             </label>
-                            <Select value={slippageTolerance} onValueChange={setSlippageTolerance}>
+                            <Select 
+                                value={slippageTolerance} 
+                                onValueChange={setSlippageTolerance}
+                                disabled={botRunning}
+                            >
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Select slippage tolerance" />
                                 </SelectTrigger>
@@ -243,21 +321,40 @@ export const ArbitragePage = () => {
 
                         <Separator />
 
-                        <Button
-                            className="w-full h-12 text-lg"
-                            size="lg"
-                            onClick={handleStartArbitrage}
-                            disabled={isLoading || !connected}
-                        >
-                            {isLoading ? (
-                                <div className="flex items-center gap-2">
-                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                    Starting Bot...
-                                </div>
-                            ) : (
-                                "Start Arbitrage Bot"
-                            )}
-                        </Button>
+                        {!botRunning ? (
+                            <Button
+                                className="w-full h-12 text-lg"
+                                size="lg"
+                                onClick={handleStartArbitrage}
+                                disabled={isLoading || !connected}
+                            >
+                                {isLoading ? (
+                                    <div className="flex items-center gap-2">
+                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                        Starting Bot...
+                                    </div>
+                                ) : (
+                                    "Start Arbitrage Bot"
+                                )}
+                            </Button>
+                        ) : (
+                            <Button
+                                className="w-full h-12 text-lg"
+                                size="lg"
+                                variant="destructive"
+                                onClick={handleStopArbitrage}
+                                disabled={stopLoading || !connected}
+                            >
+                                {stopLoading ? (
+                                    <div className="flex items-center gap-2">
+                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                        Stopping Bot...
+                                    </div>
+                                ) : (
+                                    "Stop Arbitrage Bot"
+                                )}
+                            </Button>
+                        )}
                     </div>
                 </CardContent>
             </Card>

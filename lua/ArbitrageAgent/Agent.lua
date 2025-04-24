@@ -208,7 +208,7 @@ Handlers.add("GetExtremes", "GetExtremes",function(msg)
   local prices = msg.Data
   -- Find highest and lowest prices
   local highestPrice = "0"
-  local lowestPrice = "0"
+  local lowestPrice = "1000000"
   local highestDexId = ""
   local lowestDexId = ""
   

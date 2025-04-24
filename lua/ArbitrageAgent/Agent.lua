@@ -318,7 +318,7 @@ end
 
 -- Cron handler for automatic scanning
 Handlers.add("CronTick",
-  Handlers.utils.hasMatchingTag("Action", "CronTick"),
+  Handlers.utils.hasMatchingTag("Action", "Cron"),
   function(msg)
     if not ArbitrageConfig.enabled then return end
     
